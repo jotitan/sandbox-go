@@ -78,6 +78,7 @@ func DataToImage(path, source,key string){
 	}
 	// Write data
 	out.Write(encodeData)
+	fmt.Println("Create image in",path)
 }
 
 func ImageToData(source, dest,key string) {
@@ -101,6 +102,8 @@ func ImageToData(source, dest,key string) {
 	out,_ := os.OpenFile(dest,os.O_CREATE|os.O_TRUNC,os.ModePerm)
 	defer out.Close()
 	out.Write(zipData)
+
+	fmt.Println("Read image and create file in",dest)
 }
 
 

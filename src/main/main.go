@@ -14,7 +14,6 @@ import (
 func main(){
 
 	args := arguments.ParseArgs()
-
 	if _, ok := args["crypt"] ; ok {
 		crypt.DataToImage(args["to"],args["from"],args["key"])
 		return
@@ -34,6 +33,7 @@ func main(){
 		}
 		crypt.Archive(args["from"],zipFile,excludes)
 		crypt.DataToImage(args["to"],zipFile,args["key"])
+		return
 	}
-
+	fmt.Printf("Nothing to launch")
 }

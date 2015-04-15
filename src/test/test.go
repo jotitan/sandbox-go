@@ -8,10 +8,103 @@ import (
 )
 
 
+func formatType(typeMarker int)string{
+	switch typeMarker {
+		case 1 : return "byte"
+		case 2 : return "ascii"
+		case 3 : return "short"
+		case 4 : return "long"
+		case 5 : return "rational"
+		case 6 : return "signed byte"
+		case 7 : return "undefined"
+		case 8 : return "signed short"
+		case 9 : return "signed long"
+		case 10 : return "signed rational"
+		case 11 : return "float"
+		case 12 : return "double float"
+		default : return "error"
+	}
+}
 
-func main(){
+type Marker struct{
+	name string
+	kind int
+	length int
+	data interface{}
 
-    path := "src/resources/img.jpg"
+}
+
+func (m Marker)ToString()string{
+	return fmt.Sprintf("%s (%s) : %v (%d)",m.name,formatType(m.kind),m.data,m.length)
+}
+
+type IntReader interface{
+	ReadInt32(tab []byte)int
+	ReadInt16(tab []byte)int
+	Type()string
+}
+
+type ReaderLittleIndian struct{}
+
+func (r ReaderLittleIndian)ReadInt32(tab[]byte)int{
+	return int(binary.LittleEndian.Uint32(tab))
+}
+
+func (r ReaderLittleIndian)ReadInt16(tab[]byte)int{
+	return int(binary.LittleEndian.Uint16(tab))
+}
+
+func (r ReaderLittleIndian)Type()string{
+	return "little"
+}
+
+type ReaderBigIndian struct{}
+
+func (r ReaderBigIndian)ReadInt32(tab[]byte)int{
+	return int(binary.BigEndian.Uint32(tab))
+}
+
+func (r ReaderBigIndian)ReadInt16(tab[]byte)int{
+	return int(binary.BigEndian.Uint16(tab))
+}
+
+func (r ReaderBigIndian)Type()string{
+	return "big"
+}
+
+var intReader IntReader
+
+// Bloc of size 12
+func getMarker(bloc,data []byte)Marker{
+	marker := hex.EncodeToString(bloc[0:2])
+	typeMarker := intReader.ReadInt16(bloc[2:4])
+	length := intReader.ReadInt32(bloc[4:8])
+	var formatData interface{}
+	switch typeMarker {
+	case 2 :
+		if length > 4 {
+			// Read data at offset
+			offset := intReader.ReadInt32(bloc[8:])
+			formatData = string(data[offset:offset+length])
+		}else{
+			formatData = string(bloc)
+		}
+	case 3 : formatData = intReader.ReadInt16(bloc[8:])
+	case 4 : formatData = intReader.ReadInt32(bloc[8:])
+	default:formatData = bloc[8:]
+	}
+
+	return Marker{marker,typeMarker,length,formatData}
+}
+
+
+func main() {
+
+	path := "src/resources/img_BI.jpg"
+	treat(path)
+}
+
+func treat(path string){
 	f,_ := os.Open(path)
 
     defer f.Close()
@@ -33,16 +126,22 @@ func main(){
                 fmt.Println(data,string(data))
                 pos+=2+size
             case "ffe1" : fmt.Println("Exif")
-                size := int(binary.BigEndian.Uint16(line[pos+2:pos+4]))
-                exifHeader := string(line[pos+4:pos+10])
-                bitIndien := string(line[pos+10:pos+12])
-                rest := string(line[pos+12:pos+18])
-                fmt.Println(size,exifHeader,bitIndien,rest)
-                nbMarker := int(binary.LittleEndian.Uint16(line[pos+18:pos+20]))
+                dataShifted := line[pos+10:]
+				size := int(binary.BigEndian.Uint16(line[pos+2:pos+4]))
+				exifHeader := string(line[pos+4:pos+10])
+                switch string(line[pos+10:pos+12]) {
+				case "II" : intReader = ReaderLittleIndian{}
+				default : intReader = ReaderBigIndian{}
+				}
+
+				rest := string(line[pos+12:pos+18])
+                fmt.Println("INFO",size,exifHeader,rest,intReader.Type())
+                nbMarker := intReader.ReadInt16(line[pos+18:pos+20])
                 pos+=20
                 for i :=0 ; i < nbMarker ; i++{
-                    fmt.Println(line[pos:pos+12])
-                    pos+=12
+                    marker := getMarker(line[pos:pos+12],dataShifted)
+					fmt.Println(marker.ToString())
+					pos+=12
                 }
                 return
             default:return

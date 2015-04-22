@@ -4,8 +4,52 @@ import (
     resizer "github.com/nfnt/resize"
     "image/jpeg"
     "os"
+    "sync"
+    "time"
+    "strings"
+    "path/filepath"
+    "fmt"
 )
 
+type Request struct {
+    from string
+    to string
+}
+
+func ResizeMany(from, to string, width,height uint){
+    counter := sync.WaitGroup{}
+    begin := time.Now()
+
+    var requests []Request
+    if file,err := os.Open(from) ; err == nil {
+        if info,_ := file.Stat() ; info.IsDir() {
+            // List jpg file
+            names,_ := file.Readdirnames(0)
+            for _,name := range names {
+                if strings.HasSuffix(name,".jpg") {
+                    from := filepath.Join(from,name)
+                    to := fmt.Sprintf("%s_%s", to, name)
+                    requests = append(requests,Request{from,to})
+                }
+            }
+        }else{
+            requests = []Request{Request{from,to}}
+        }
+    }
+    for _,r := range requests {
+        counter.Add(1)
+        go func(req Request) {
+            if err := Resize(req.from, req.to, width,height); err == nil {
+                fmt.Println("Img resized", req.to)
+            }else {
+                fmt.Println("Impossible",err)
+            }
+            counter.Done()
+        }(r)
+    }
+    counter.Wait()
+    fmt.Println("Done",time.Now().Sub(begin))
+}
 
 func Resize(from,to string,width,height uint)error{
     //begin := time.Now()

@@ -14,21 +14,21 @@ func root(response http.ResponseWriter, request *http.Request){
     fmt.Println("root")
 }
 
-func resizeReq(response http.ResponseWriter, request *http.Request){
-    from := request.FormValue("from")
-    to := request.FormValue("to")
-    height,width := int64(0),int64(0)
-    if h := request.FormValue("height") ; h!="" {
-        if h2,err := strconv.ParseInt(h,10,0) ; err == nil {
-            height = h2
-        }
-    }
-    if w := request.FormValue("width") ; w!="" {
-        if w2,err := strconv.ParseInt(w,10,0) ; err == nil {
-            width = w2
-        }
-    }
-    resize.ResizeMany(from,to,0,0)
+func extractInt(r *http.Request,name string)int{
+	if intValue := r.FormValue(name) ; intValue!="" {
+		if value,err := strconv.ParseInt(intValue,10,0) ; err == nil {
+			return value
+		}
+	}
+	return 0
+}
+
+func resizeReq(_ http.ResponseWriter, r *http.Request){
+    from := r.FormValue("from")
+    to := r.FormValue("to")
+	height,width := extractInt(r,"height"),extractInt(r,"width")
+
+    resize.ResizeMany(from,to,uint(width),uint(height))
     fmt.Println("Resize",from,to,width,height)
 }
 

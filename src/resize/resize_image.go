@@ -16,26 +16,31 @@ type Request struct {
     to string
 }
 
+func GetPhotosToTreat(from,to string)[]Request{
+	var requests []Request
+	if file,err := os.Open(from) ; err == nil {
+		if info,_ := file.Stat() ; info.IsDir() {
+			// List jpg file
+			names,_ := file.Readdirnames(0)
+			for _,name := range names {
+				if strings.HasSuffix(name,".jpg") {
+					from := filepath.Join(from,name)
+					to := fmt.Sprintf("%s_%s", to, name)
+					requests = append(requests,Request{from,to})
+				}
+			}
+		}else{
+			requests = []Request{Request{from,to}}
+		}
+	}
+	return requests
+}
+
 func ResizeMany(from, to string, width,height uint){
     counter := sync.WaitGroup{}
     begin := time.Now()
 
-    var requests []Request
-    if file,err := os.Open(from) ; err == nil {
-        if info,_ := file.Stat() ; info.IsDir() {
-            // List jpg file
-            names,_ := file.Readdirnames(0)
-            for _,name := range names {
-                if strings.HasSuffix(name,".jpg") {
-                    from := filepath.Join(from,name)
-                    to := fmt.Sprintf("%s_%s", to, name)
-                    requests = append(requests,Request{from,to})
-                }
-            }
-        }else{
-            requests = []Request{Request{from,to}}
-        }
-    }
+    requests := GetPhotosToTreat(from,to)
     for _,r := range requests {
         counter.Add(1)
         go func(req Request) {

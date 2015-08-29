@@ -109,6 +109,14 @@ func (tm * TasksManager)RegisterNode(nodeURL string)(NodeClient,error){
 	return node,nil
 }
 
+func (tm TasksManager)GetAllStats()[]Stats{
+	stats := make([]Stats,0,len(tm.nodes)+1)
+	stats = append(stats,tm.GetStats())
+	for _,node := range tm.nodes {
+		stats = append(stats,node.GetStats())
+	}
+	return stats
+}
 
 func (tm TasksManager)GetStats()Stats{
 	stats := Stats{}
@@ -117,6 +125,7 @@ func (tm TasksManager)GetStats()Stats{
 	stats.NbTaskers = tm.NbParallelTask
 	stats.Load = tm.GetLoad()
 	stats.NbTasks = len(tm.tasks)
+	stats.Temperature = hardwareutil.GetTemperature()
 
 	return stats
 }

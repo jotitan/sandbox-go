@@ -16,6 +16,7 @@ type Stats struct {
 	NbTaskers int
 	NbTasks int
 	Load float64
+	Temperature float32
 }
 
 // NodeClient

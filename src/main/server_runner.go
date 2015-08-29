@@ -58,6 +58,13 @@ func stats(response http.ResponseWriter, request *http.Request){
 	response.Write(data)
 }
 
+// Return stats of whole cluster
+func allStats(response http.ResponseWriter, request *http.Request){
+	stats := tasksManager.GetAllStats()
+	data,_:= json.Marshal(stats)
+	response.Header().Set("Content-type","application/json")
+	response.Write(data)
+}
 
 // Register a new node
 func registerNode(response http.ResponseWriter, request *http.Request){
@@ -91,8 +98,11 @@ func resizeReq(_ http.ResponseWriter, r *http.Request){
 
 
 func createServer(port string,nbTaskers int){
+	if port == ""{
+		logger.GetLogger().Fatal("Impossible to run node, port is not defined")
+	}
 	tasksManager = node.NewTaskManager(nbTaskers,fmt.Sprintf("http://localhost:%s",port))
-	tasksManager.DiscoverNetwork("127.0.0",[]int{9008,9015},[]int{1,1})
+	tasksManager.DiscoverNetwork("192.168.0",[]int{9002,9012},[]int{18,18})
 	tasksManager.Info()
 
     mux := http.NewServeMux()
@@ -102,6 +112,7 @@ func createServer(port string,nbTaskers int){
     mux.HandleFunc("/register",registerNode)
     mux.HandleFunc("/add",addTask)
     mux.HandleFunc("/stats",stats)
+    mux.HandleFunc("/allStats",allStats)
     mux.HandleFunc("/",root)
 
 	logger.GetLogger().Info("Runner ok on :",port)

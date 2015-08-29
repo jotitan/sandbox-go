@@ -14,7 +14,7 @@ func GetTemperature()float32{
 
             strTemp := reg.FindString(string(data))
             if temperature,e := strconv.ParseFloat(strTemp,32) ; e == nil {
-                return math.Ceil(temperature*10)/10
+                return float32(math.Ceil(temperature*10)/10)
             }
         }
     }

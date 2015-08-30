@@ -20,7 +20,8 @@ type Task interface {
 }
 
 type Info struct {
-	Id int
+	// Id is composed with machine id (ip:port) and unique id
+	Id string
 	TypeTask string
 	Status int8
 	CreateTime time.Time
@@ -28,6 +29,6 @@ type Info struct {
 	EndTime time.Time
 }
 
-func NewInfo(id int,typeTask string)*Info{
+func NewInfo(id string,typeTask string)*Info{
 	return &Info{Id:id,Status:StatusNew,CreateTime:time.Now(),TypeTask:typeTask}
 }

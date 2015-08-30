@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"time"
 	"strings"
+	"errors"
 )
 
 
@@ -68,8 +69,13 @@ func (n NodeClient)GetStats()Stats{
 	return Stats{}
 }
 
-func (n NodeClient)SendTask(task Task){
+// return the id of created task
+func (n NodeClient)SendTask(task Task)(string,error){
 	base := fmt.Sprintf("type=%s&force=true",task.GetInfo().TypeTask)
 	str:=strings.Join(append(task.Serialize(),base),"&")
-	http.DefaultClient.Get(fmt.Sprintf("%s/add?%s",n.Url,str))
+	if resp,err := http.DefaultClient.Get(fmt.Sprintf("%s/add?%s",n.Url,str)) ; err == nil {
+		data,_ := ioutil.ReadAll(resp.Body)
+		return string(data),nil
+	}
+	return "",errors.New("Error when distant adding")
 }

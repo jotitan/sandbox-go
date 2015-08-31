@@ -78,7 +78,7 @@ func NewTaskManager(nbTask int,localUrl string)TasksManager{
 				t = t.Start()
 				logger.GetLogger().Info("End task",t.GetInfo().Id,t.GetInfo().Status)
 				// Move task in finished list
-				tm.finishedTasks[task.GetInfo().Id] = task
+				tm.finishedTasks[t.GetInfo().Id] = t
 				delete(tm.tasks,t.GetInfo().Id)
 				<- taskLimiter
 			}(task)
@@ -88,7 +88,7 @@ func NewTaskManager(nbTask int,localUrl string)TasksManager{
 }
 
 // GetStatusTask return the status of the task. Real id is after the last :, before it's the server address
-func (tm TasksManager)GetStatusTask(id string)int{
+func (tm TasksManager)GetStatusTask(id string)int8{
 	urlNode := id[:strings.LastIndex(id,":")]
 	// case of local task
 	if tm.url == urlNode {
@@ -98,12 +98,11 @@ func (tm TasksManager)GetStatusTask(id string)int{
 		if task, ok := tm.finishedTasks[id]; ok {
 			return task.GetInfo().Status
 		}
-	}else{
-		//ask distant server
-		node := tm.nodes[urlNode]
-		node.GetStatusTask(id)
+		return StatusNotFound
 	}
-	return 0
+	//ask distant server
+	node := tm.nodes[urlNode]
+	return node.GetStatusTask(id)
 }
 
 func (tm TasksManager)Info(){
@@ -152,7 +151,7 @@ func (tm TasksManager)GetStats()Stats{
 	stats.Load = tm.GetLoad()
 	stats.NbTasks = len(tm.tasks)
 	stats.Temperature = hardwareutil.GetTemperature()
-
+	stats.ID = tm.url
 	return stats
 }
 

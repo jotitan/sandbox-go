@@ -3,10 +3,11 @@ package node
 import "time"
 
 const (
-	StatusNew = 0
-	StatusRunning = 1
-	StatusDone = 2
-	StatusError = 3
+	StatusNew = int8(0)
+	StatusRunning = int8(1)
+	StatusDone = int8(2)
+	StatusError = int8(3)
+	StatusNotFound = int8(4)
 )
 
 

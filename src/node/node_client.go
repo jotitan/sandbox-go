@@ -8,6 +8,7 @@ import (
 	"time"
 	"strings"
 	"errors"
+	"strconv"
 )
 
 
@@ -18,6 +19,7 @@ type Stats struct {
 	NbTasks int
 	Load float64
 	Temperature float32
+	ID string
 }
 
 // NodeClient
@@ -69,8 +71,14 @@ func (n NodeClient)GetStats()Stats{
 	return Stats{}
 }
 
-func (n NodeClient)GetStatusTask(id string)int {
-
+func (n NodeClient)GetStatusTask(id string)int8 {
+	if resp,err := http.DefaultClient.Get(fmt.Sprintf("%s/taskStatus?id=%s",n.Url,id)) ; err == nil {
+		data,_ := ioutil.ReadAll(resp.Body)
+		if status,err := strconv.ParseInt(string(data),10,0) ; err == nil {
+			return int8(status)
+		}
+	}
+	return StatusError
 }
 
 // return the id of created task

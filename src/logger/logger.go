@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"strings"
 	"fmt"
+	"sync"
 )
 
 /* Manage log */
@@ -67,12 +68,17 @@ func InitLogger(filename string, console bool) *Logger {
 
 // singleton of logger
 var logger *Logger
+var lock = sync.Mutex{}
 
 // GetLogger return the logger or create it if not exist
 // TODO singleton, synchronize it
 func GetLogger() *Logger {
 	if logger == nil {
-		InitLogger("", false)
+		lock.Lock()
+		if logger == nil {
+			InitLogger("", false)
+		}
+		lock.Unlock()
 	}
 	return logger
 }

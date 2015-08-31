@@ -46,12 +46,15 @@ func addTask(response http.ResponseWriter, request *http.Request){
 
 // Return the status of a task
 func getStatusTask(response http.ResponseWriter,request *http.Request){
-	tasksManager.GetStatusTask(request.FormValue("id"))
+	status := tasksManager.GetStatusTask(request.FormValue("id"))
+	response.Write([]byte(fmt.Sprintf("%d",status)))
 }
 
 
 func root(response http.ResponseWriter, request *http.Request){
-    response.Write([]byte("Page d'accueil"))
+	url := request.RequestURI
+	fmt.Println("../../resources/html/" + url[1:])
+	http.ServeFile(response,request,"../resources/html/" + url[1:])
 }
 
 // Use to find node with very short timeout
@@ -131,21 +134,25 @@ func createServer(port string,baseIP string,rangeIP []int,rangePort []int,nbTask
 		tasksManager.Info()
 	}
 
-    mux := http.NewServeMux()
-    mux.HandleFunc("/resize",resizeReq)
-    mux.HandleFunc("/load",load)
-    mux.HandleFunc("/status",status)
-    mux.HandleFunc("/register",registerNode)
-    mux.HandleFunc("/add",addTask)
-    mux.HandleFunc("/stats",stats)
-    mux.HandleFunc("/allStats",allStats)
-    mux.HandleFunc("/taskStatus",getStatusTask)
-    mux.HandleFunc("/",root)
-
-	logger.GetLogger().Info("Runner ok on :",port)
-
+    mux := createRoutes()
+	logger.GetLogger().Info("Runner ok on :",localIP,port)
     http.ListenAndServe(":" + port,mux)
+
 	logger.GetLogger().Error("Runner ko")
+}
+
+func createRoutes()*http.ServeMux{
+	mux := http.NewServeMux()
+	mux.HandleFunc("/resize",resizeReq)
+	mux.HandleFunc("/load",load)
+	mux.HandleFunc("/status",status)
+	mux.HandleFunc("/register",registerNode)
+	mux.HandleFunc("/add",addTask)
+	mux.HandleFunc("/stats",stats)
+	mux.HandleFunc("/allStats",allStats)
+	mux.HandleFunc("/taskStatus",getStatusTask)
+	mux.HandleFunc("/",root)
+	return mux
 }
 
 func main(){

@@ -89,9 +89,20 @@ func NewTaskManager(nbTask int,localUrl string)TasksManager{
 
 // GetStatusTask return the status of the task. Real id is after the last :, before it's the server address
 func (tm TasksManager)GetStatusTask(id string)int{
-	innerID := id[strings.LastIndex(id,":")+1:]
 	urlNode := id[:strings.LastIndex(id,":")]
-	fmt.Println(innerID,"::",urlNode)
+	// case of local task
+	if tm.url == urlNode {
+		if task, ok := tm.tasks[id]; ok {
+			return task.GetInfo().Status
+		}
+		if task, ok := tm.finishedTasks[id]; ok {
+			return task.GetInfo().Status
+		}
+	}else{
+		//ask distant server
+		node := tm.nodes[urlNode]
+		node.GetStatusTask(id)
+	}
 	return 0
 }
 

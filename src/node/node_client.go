@@ -69,6 +69,10 @@ func (n NodeClient)GetStats()Stats{
 	return Stats{}
 }
 
+func (n NodeClient)GetStatusTask(id string)int {
+
+}
+
 // return the id of created task
 func (n NodeClient)SendTask(task Task)(string,error){
 	base := fmt.Sprintf("type=%s&force=true",task.GetInfo().TypeTask)

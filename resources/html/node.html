@@ -1,0 +1,23 @@
+
+<div class="node" id="template" style="display:none">
+    <div class="header">
+        <span title="Node up" class="glyphicon glyphicon-ok status status-up"></span>
+        <span title="Node down" class="glyphicon glyphicon-remove status status-down"></span>
+        <span title="Node waiting topology" class="glyphicon glyphicon-time status status-wait-topo"></span>
+        <span title="Node synchronizing" class="glyphicon glyphicon-refresh status status-synchro"></span>
+        <span name="url">url</span>
+    </div>
+    <hr/>
+    Uptime : <span>Uptime</span><br/>
+    Tasks : <span name="NbTaskers">NbMasterFile</span> taskers / <span name="NbTasks">NbFile</span><br/>
+    Memory : <span name="Memory" data-format="formatMemory">Memory Ko</span> <br/>
+    Cpu load : <span name="CPU">0</span> %<br/>
+    Free Space : <span name="Temperature">Temperature</span> Mo<br/>
+
+    <div data-type="list" name="Tasks">
+        <div class="template">
+            <span data-id="Type"></span> :
+            <div data-id="Progress" data-moreinfo="Date" class="progressbar" data-modify="modifyProgressBar"></div>
+        </div>
+    </div>
+</div>

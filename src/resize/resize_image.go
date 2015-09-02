@@ -73,6 +73,7 @@ func Resize(from,to string,width,height uint)error{
 func saveImage(img image.Image, path string)error{
     if f,err := os.OpenFile(path,os.O_CREATE|os.O_TRUNC,os.ModePerm) ; err == nil{
         jpeg.Encode(f,img,&(jpeg.Options{75}))
+		f.Close()
         return nil
     }else{
         return err

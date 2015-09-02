@@ -52,9 +52,11 @@ type TasksManager struct {
 	taskChan chan Task
 	// List of node of cluster. Usefull to deport treatment on other node
 	nodes map[string]NodeClient
+	// FOlder where photos and cache can be found
+	folder string
 }
 
-func NewTaskManager(nbTask int,localUrl string)TasksManager{
+func NewTaskManager(nbTask int,localUrl string)*TasksManager{
 	seq := NewSequence(localUrl)
 	tm := TasksManager{NbParallelTask:nbTask,
 		url:localUrl,
@@ -74,8 +76,8 @@ func NewTaskManager(nbTask int,localUrl string)TasksManager{
 			go func(t Task){
 				// To limit number
 				taskLimiter <-0
-				logger.GetLogger().Info("Begin task",t.GetInfo().TypeTask,t.GetInfo().Id)
-				t = t.Start()
+				logger.GetLogger().Info("Begin task",t.ToString())
+				t = t.Start(tm.folder)
 				logger.GetLogger().Info("End task",t.GetInfo().Id,t.GetInfo().Status)
 				// Move task in finished list
 				tm.finishedTasks[t.GetInfo().Id] = t
@@ -84,8 +86,12 @@ func NewTaskManager(nbTask int,localUrl string)TasksManager{
 			}(task)
 		}
 	}()
-	return tm
+	return &tm
 }
+func (tm * TasksManager)SetFolder(folder string){
+	tm.folder = folder
+}
+
 
 // GetStatusTask return the status of the task. Real id is after the last :, before it's the server address
 func (tm TasksManager)GetStatusTask(id string)int8{
@@ -137,8 +143,15 @@ func (tm * TasksManager)RegisterNode(nodeURL string)(NodeClient,error){
 func (tm TasksManager)GetAllStats()[]Stats{
 	stats := make([]Stats,0,len(tm.nodes)+1)
 	stats = append(stats,tm.GetStats())
+	cs := make(chan Stats)
+
 	for _,node := range tm.nodes {
-		stats = append(stats,node.GetStats())
+		go func(n NodeClient){
+			cs <- n.GetStats()
+		}(node)
+	}
+	for _ = range tm.nodes {
+		stats = append(stats,<-cs)
 	}
 	return stats
 }
@@ -176,21 +189,29 @@ func (tm TasksManager)findQuiteNode(load float64)(NodeClient,error){
 	return minNode,nil
 }
 
+var limiter = make(chan int,1)
+
 // @param force : if true, no load server check, just add the task
-func (tm TasksManager)AddTask(task Task,force bool)string{
-   	// Search an other one
+func (tm * TasksManager)AddTask(task Task,force bool)string{
+   	// To avoid manage all request on only one node when many requests arrived at same time, used a channel to limit
+	limiter <- 1
+	// Search an other one
 	if !force {
+		logger.GetLogger().Info("LOAD",tm.GetLoad(),task.GetInfo().Id)
 		if load := tm.GetLoad() ; load > 1 {
 			if node, notFound := tm.findQuiteNode(load) ; notFound == nil {
 				// Add task to this node, quiter, and return distant id
 				if id,err := node.SendTask(task) ; err == nil {
+					<- limiter
 					return id
 				}
 				return ""
 			}
 		}
 	}
+	logger.GetLogger().Info("Treat here",task.GetInfo().Id)
 	// check ratio, ask friend and add later
+	<- limiter
 	tm.taskChan <- task
 	return task.GetInfo().Id
 }

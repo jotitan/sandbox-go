@@ -4,6 +4,8 @@ import (
 	"time"
 	"resize"
 	"fmt"
+	"path/filepath"
+	"logger"
 )
 
 type ResizeTask struct {
@@ -15,15 +17,18 @@ type ResizeTask struct {
 }
 
 func (tm TasksManager)NewResizeTask(from,to string,width,height uint)ResizeTask{
-	return ResizeTask{info:NewInfo(tm.seq.Next(),ResizeTaskType),from:from,to:to,width:width,height:height}
+	return ResizeTask{info:NewInfo(tm.seq.Next(),ResizeTaskType),
+		from:from,to:to,
+		width:width,height:height}
 }
 
-func (task ResizeTask)Start()Task{
+func (task ResizeTask)Start(folder string)Task{
 	task.info.Status = StatusRunning
 	task.info.StartTime = time.Now()
-	if err := resize.Resize(task.from, task.to, task.width,task.height) ; err == nil {
+	if err := resize.Resize(filepath.Join(folder,task.from), filepath.Join(folder,task.to), task.width,task.height) ; err == nil {
 		task.info.Status = StatusDone
 	}else{
+		logger.GetLogger().Error(err,folder)
 		task.info.Status = StatusError
 	}
 	task.info.EndTime = time.Now()
@@ -41,4 +46,9 @@ func (task ResizeTask)Serialize() []string {
 		fmt.Sprintf("width=%s",task.width),
 		fmt.Sprintf("height=%s",task.height),
 	}
+}
+
+func (task ResizeTask)ToString()string{
+	return fmt.Sprintf("RESIZE => id:%s, from:%s, to:%s, width:%d, height:%d",task.info.Id,
+	task.from,task.to,task.width,task.height)
 }

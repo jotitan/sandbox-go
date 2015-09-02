@@ -17,7 +17,7 @@ func (tm TasksManager)NewWaitTask(wait int)WaitTask{
 	return WaitTask{info:NewInfo(tm.seq.Next(),WaitTaskType),wait:wait}
 }
 
-func (task WaitTask)Start()Task{
+func (task WaitTask)Start(_ string)Task{
 	time.Sleep(time.Duration(task.wait) * time.Millisecond)
 	task.info.Status = StatusDone
 	return task
@@ -29,4 +29,8 @@ func (task WaitTask)GetInfo()*Info{
 
 func (task WaitTask)Serialize() []string {
 	return []string{fmt.Sprintf("wait=%d",task.wait)}
+}
+
+func (task WaitTask)ToString()string{
+	return fmt.Sprintf("WAIT => id:%s, wait:%d",task.info.Id,task.wait)
 }

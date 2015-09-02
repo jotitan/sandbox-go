@@ -5,6 +5,9 @@ import (
     "bufio"
 	"encoding/hex"
     "encoding/binary"
+	"io/ioutil"
+	"net/http"
+	"sync"
 )
 
 
@@ -98,7 +101,35 @@ func getMarker(bloc,data []byte)Marker{
 }
 
 
-func main() {
+func main(){
+	run()
+}
+
+func create(){
+	name := "C:\\Users\\960963\\Pictures\\RESIZER\\brut.jpg"
+	data,_ := ioutil.ReadFile(name)
+	for i := 0 ; i < 100 ; i++ {
+		fileout,_ := os.Create(fmt.Sprintf("C:\\Users\\960963\\Pictures\\RESIZER\\brut_%d.jpg",i))
+		fileout.Write(data)
+		fileout.Close()
+	}
+}
+
+func run(){
+	nb := 100
+	waiter := sync.WaitGroup{}
+	waiter.Add(nb)
+	for i := 0 ; i < nb ; i++ {
+		go func(id int){
+			url := fmt.Sprintf("http://127.0.0.1:9011/add?type=RESIZE_TASK&from=brut_%d.jpg&to=resize/resize_%d.jpg&width=200&height:150",id,id)
+			http.Get(url)
+			waiter.Done()
+		}(i)
+	}
+	waiter.Wait()
+}
+
+func testReadExif() {
 
 	path := "src/resources/img_BI.jpg"
 	treat(path)

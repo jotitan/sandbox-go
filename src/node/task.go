@@ -15,9 +15,11 @@ type Task interface {
 	/* Return info about task */
 	GetInfo()*Info
 	/* Start the function */
-	Start() Task
+	Start(folder string) Task
 	/* Serialize task to be sent to another node */
 	Serialize() []string
+	// ToString return a string representation of task
+	ToString() string
 }
 
 type Info struct {

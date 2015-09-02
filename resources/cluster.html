@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Cluster status</title>
+
+
+    <script src="vendors/jquery/jquery-2.1.3.min.js"></script>
+    <script src="vendors/jquery/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="vendors/jquery/jquery-ui.min.css"/>
+    <link rel="stylesheet" href="vendors/bootstrap/css/bootstrap.min.css">
+
+    <script src="vendors/bootstrap/js/bootstrap.min.js"></script>
+    <script src="vendors/peity/jquery.peity.min.js"></script>
+
+    <script src="vendors/highcharts/highcharts.js"></script>
+
+    <link rel="stylesheet" href="css/style.css"/>
+    <script src="js/loader.js"></script>
+    <script src="js/panel.js"></script>
+    <script src="js/response_format.js"></script>
+    <script src="js/graphic.js"></script>
+    <script src="js/cluster.js"></script>
+    <script src="js/clock.js"></script>
+    <script src="js/log_viewer.js"></script>
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top navbar-md" role="navigation">
+    <div class="container" style="margin-left:0px;">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <span class="navbar-brand" style="cursor:pointer">
+                Cluster
+            </span>
+
+            <div class="navbar-text">
+
+                <div class="progress" style="width:200px;display:inline-block;margin-bottom:0px">
+                    <div id="idTotalBar" class="progress-bar  progress-bar-success"
+                         title="Master files" role="progressbar" aria-valuenow="1">
+                        <span id="idNbTaskers"></span>
+                    </div>
+                </div>
+                <div style="display:inline-block;top:-5px;position:relative">
+                    <span id="idNbTasks"></span> tasks
+                    <span id="idInfoCluster" class="disconnect_bloc"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="collapse navbar-collapse">
+            <ul class="nav navbar-nav">
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Nodes <span class="caret"></span></a>
+                    <ul class="dropdown-menu" role="menu">
+                        <li><a href="#" onclick="GraphicAction.showPanel()">
+                            <span class="glyphicon glyphicon-signal"></span>
+                            Graphics...</a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="navbar navbar-default navbar-fixed-bottom navbar-inverse little-navbar" >
+    <div class="container" style="margin-left:0px;width:100%">
+        <div class="show-time mini-bloc" style="display:inline-block"></div>
+        <div style="height:20px;margin:5px;display:inline-block"><span id="mem-status"></span></div>
+        <div id="idTotalMemory" class="mini-bloc" style="display:inline-block;width:60px;"></div>
+        <div style="height:25px;display:inline-block;top:-5px;position:relative" id="idWindowsNav"></div>
+        <div style="float:right;display:inline-block;width:100px;height:25px;margin-top:3px">
+            <canvas width="100px" height="25px" id="idMiniStatus" title="Cluster status"></canvas>
+        </div>
+    </div>
+</div>
+
+<div id="idCluster" style="margin-top:50px"></div>
+
+<script>
+    $(function(){
+        Loader.launch(initClusterStatus);
+    })
+</script>
+
+</body>
+</html>

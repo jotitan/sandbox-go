@@ -15,7 +15,7 @@ import (
 
 /* Launch a server to treat resize image */
 
-var tasksManager node.TasksManager
+var tasksManager * node.TasksManager
 
 // Return the id of task to track it
 func addTask(response http.ResponseWriter, request *http.Request){
@@ -36,7 +36,6 @@ func addTask(response http.ResponseWriter, request *http.Request){
 		from:=request.FormValue("from")
 		to:=request.FormValue("to")
 		task = tasksManager.NewResizeTask(from,to,uint(width),uint(height))
-
 	}
 	if task != nil {
 		realID := tasksManager.AddTask(task,force)
@@ -53,8 +52,7 @@ func getStatusTask(response http.ResponseWriter,request *http.Request){
 
 func root(response http.ResponseWriter, request *http.Request){
 	url := request.RequestURI
-	fmt.Println("../../resources/html/" + url[1:])
-	http.ServeFile(response,request,"../resources/html/" + url[1:])
+	http.ServeFile(response,request,"resources/" + url[1:])
 }
 
 // Use to find node with very short timeout
@@ -121,12 +119,13 @@ func findExposedURL()string{
 	return "localhost"
 }
 
-func createServer(port string,baseIP string,rangeIP []int,rangePort []int,nbTaskers int){
+func createServer(port string,baseIP string,rangeIP []int,rangePort []int,nbTaskers int,folder string){
 	if port == ""{
 		logger.GetLogger().Fatal("Impossible to run node, port is not defined")
 	}
 	localIP := findExposedURL()
 	tasksManager = node.NewTaskManager(nbTaskers,fmt.Sprintf("http://%s:%s",localIP,port))
+	tasksManager.SetFolder(folder)
 
 	if baseIP != "" && len(rangePort) == 2 && len(rangeIP) == 2 {
 	    logger.GetLogger().Info("Discover network",baseIP,rangeIP,rangePort)
@@ -179,5 +178,5 @@ func main(){
 		rangePort = append(rangePort,int(port))
 	}
 
-	createServer(port,baseIP,rangeIP,rangePort,2)
+	createServer(port,baseIP,rangeIP,rangePort,2,args["folder"])
 }

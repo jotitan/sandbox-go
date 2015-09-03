@@ -173,16 +173,31 @@ func (tm TasksManager)GetLoad()float64{
 	return float64(len(tm.tasks)) / float64(tm.NbParallelTask)
 }
 
+type loadNode struct {
+	node NodeClient
+	load float64
+}
+
 func (tm TasksManager)findQuiteNode(load float64)(NodeClient,error){
 	var minNode NodeClient
 	minLoad := load
-	for _,n := range tm.nodes{
-		// TODO goroutine
-		if nodeLoad := n.GetLoad() ; minLoad > nodeLoad{
-			minLoad = nodeLoad
-			minNode = n
+	chanLoad := make(chan loadNode)
+	waiter := make(chan int,1)
+	go func(){
+		for _ = range tm.nodes {
+			 if ln := <- chanLoad ; minLoad > ln.load {
+				 minLoad = ln.load
+				 minNode = ln.node
+			 }
 		}
+		waiter <- 1
+	}()
+	for _,n := range tm.nodes{
+		go func(nc NodeClient){
+			 chanLoad <- loadNode{nc,nc.GetLoad()}
+		}(n)
 	}
+	<-waiter
 	if minLoad == load {
 		return NodeClient{},errors.New("No quiter node")
 	}

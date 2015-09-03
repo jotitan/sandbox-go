@@ -108,7 +108,7 @@ func main(){
 func create(){
 	name := "C:\\Users\\960963\\Pictures\\RESIZER\\brut.jpg"
 	data,_ := ioutil.ReadFile(name)
-	for i := 0 ; i < 100 ; i++ {
+	for i := 0 ; i < 150 ; i++ {
 		fileout,_ := os.Create(fmt.Sprintf("C:\\Users\\960963\\Pictures\\RESIZER\\brut_%d.jpg",i))
 		fileout.Write(data)
 		fileout.Close()

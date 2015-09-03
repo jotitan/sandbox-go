@@ -94,6 +94,7 @@ function showCluster(data){
     }
     $('#idNbTaskers').html(taskers)
     $('#idNbTasks').html(tasks)
+    BarManager.update(tasks)
     pourcent = taskers *100/(Math.max(tasks,taskers))
     $('#idTotalBar').css('width',pourcent + '%')
     MiniStatusViewer.refresh()
@@ -107,9 +108,11 @@ var BarManager = {
     bar:null,
     titleBloc:null,
     nbByGraph:50,
-    init:function(id){
+    formater:null,
+    init:function(id,formater){
          this.bar = $('#' + id).peity("line",{width:100,height:20})
          this.titleBloc = $('#' + id).next()
+         this.formater = formater;
     },
     update:function(value){
         if(this.bar == null){return;}
@@ -118,7 +121,10 @@ var BarManager = {
         }
         this.data.push(value)
         this.bar.text(this.data.join(",")).change()
-        this.titleBloc.attr('title',Math.round(value/1024) + " Mo")
+        if(this.formater != null){
+            value = this.formater(value)
+        }
+        this.titleBloc.attr('title',value)
     }
 }
 
@@ -137,7 +143,7 @@ var ClusterAction = {
     graphPanelManager:null,
     init:function(){
         this.graphPanelManager = $('#addGraphPanel')
-        BarManager.init("mem-status")
+        BarManager.init("mem-status",function(v){return v + " task(s)"})
         $('.message-cluster').bind('click',function(){
             $(this).hide('fade');
         })

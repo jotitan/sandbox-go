@@ -7,6 +7,7 @@ import (
 	"logger"
 	"hardwareutil"
 	"strings"
+	"time"
 )
 
 
@@ -54,6 +55,7 @@ type TasksManager struct {
 	nodes map[string]NodeClient
 	// FOlder where photos and cache can be found
 	folder string
+	stats Stats
 }
 
 func NewTaskManager(nbTask int,localUrl string)*TasksManager{
@@ -66,12 +68,21 @@ func NewTaskManager(nbTask int,localUrl string)*TasksManager{
 		taskChan:make(chan Task),
 		nodes:make(map[string]NodeClient),
 	}
-	taskLimiter := make(chan int,nbTask)
+
 
 	// Launch task consumer
+	tm.runTasksConsumer(nbTask)
+
+	// Launch stats mechanism : works alone, data are returned when necessary
+	tm.runStatsGetter()
+	return &tm
+}
+
+func (tm * TasksManager)runTasksConsumer(nbTask int){
+	taskLimiter := make(chan int,nbTask)
 	go func(){
 		for task := range tm.taskChan {
-			logger.GetLogger().Info("Receive task",task.GetInfo().Id)
+			//logger.GetLogger().Info("Receive task",task.GetInfo().Id)
 			tm.tasks[task.GetInfo().Id] = task
 			go func(t Task){
 				// To limit number
@@ -86,8 +97,25 @@ func NewTaskManager(nbTask int,localUrl string)*TasksManager{
 			}(task)
 		}
 	}()
-	return &tm
 }
+
+func (tm * TasksManager)runStatsGetter(){
+	go func(){
+		for {
+			stats := Stats{}
+			stats.CPU = hardwareutil.GetCPUUsage()
+			stats.Memory = hardwareutil.GetCurrentMemory()
+			stats.NbTaskers = tm.NbParallelTask
+			stats.Load = tm.GetLoad()
+			stats.NbTasks = len(tm.tasks)
+			stats.Temperature = hardwareutil.GetTemperature()
+			stats.ID = tm.url
+			tm.stats = stats
+			time.Sleep(time.Second * 1)
+		}
+	}()
+}
+
 func (tm * TasksManager)SetFolder(folder string){
 	tm.folder = folder
 }
@@ -157,15 +185,7 @@ func (tm TasksManager)GetAllStats()[]Stats{
 }
 
 func (tm TasksManager)GetStats()Stats{
-	stats := Stats{}
-	stats.CPU = hardwareutil.GetCPUUsage()
-	stats.Memory = hardwareutil.GetCurrentMemory()
-	stats.NbTaskers = tm.NbParallelTask
-	stats.Load = tm.GetLoad()
-	stats.NbTasks = len(tm.tasks)
-	stats.Temperature = hardwareutil.GetTemperature()
-	stats.ID = tm.url
-	return stats
+	return tm.stats
 }
 
 // Check if it's possible to run a new task
@@ -224,8 +244,6 @@ func (tm * TasksManager)AddTask(task Task,force bool)string{
 			}
 		}
 	}
-	logger.GetLogger().Info("Treat here",task.GetInfo().Id)
-	// check ratio, ask friend and add later
 	<- limiter
 	tm.taskChan <- task
 	return task.GetInfo().Id

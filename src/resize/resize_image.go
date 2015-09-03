@@ -82,7 +82,8 @@ func saveImage(img image.Image, path string)error{
 
 func openImage(path string)(image.Image,error) {
     if f,err := os.Open(path) ; err == nil{
-        if img,err2 := jpeg.Decode(f) ; err2 == nil {
+        defer f.Close()
+		if img,err2 := jpeg.Decode(f) ; err2 == nil {
             return img,nil
         }else{
             return nil,err2

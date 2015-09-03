@@ -154,7 +154,6 @@ function DynamicGraphic(datasManager,frequency,title,unit,div,type){
         pie:{
            managers:null,
            update:function(g){
-                var data = [];
                 g.highcharts().series[0].data.forEach(function(point,i){
                     point.update(this.managers[point.name]())
                 },this);

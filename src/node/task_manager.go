@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"errors"
 	"logger"
-	"hardwareutil"
 	"strings"
 	"time"
 )
@@ -56,6 +55,33 @@ type TasksManager struct {
 	// FOlder where photos and cache can be found
 	folder string
 	stats Stats
+	eventObserver EventObserver
+}
+
+type Observer interface{
+	NewTask(task Task)
+	UpdateTask(task Task)
+}
+
+// EventObserver manage observer of tasks activities
+type EventObserver struct {
+	observers map[string]Observer
+}
+
+func (obs * EventObserver)Register(id string,observer Observer){
+	obs.observers[id] = observer
+}
+
+func (obs EventObserver)NewTask(task Task){
+	for _,observer := range obs.observers {
+		go observer.NewTask(task)
+	}
+}
+
+func (obs EventObserver)UpdateTask(task Task){
+	for _,observer := range obs.observers {
+		go observer.UpdateTask(task)
+	}
 }
 
 func NewTaskManager(nbTask int,localUrl string)*TasksManager{
@@ -67,8 +93,8 @@ func NewTaskManager(nbTask int,localUrl string)*TasksManager{
 		seq:&seq,
 		taskChan:make(chan Task),
 		nodes:make(map[string]NodeClient),
+		eventObserver:EventObserver{make(map[string]Observer)},
 	}
-
 
 	// Launch task consumer
 	tm.runTasksConsumer(nbTask)
@@ -82,35 +108,36 @@ func (tm * TasksManager)runTasksConsumer(nbTask int){
 	taskLimiter := make(chan int,nbTask)
 	go func(){
 		for task := range tm.taskChan {
-			//logger.GetLogger().Info("Receive task",task.GetInfo().Id)
 			tm.tasks[task.GetInfo().Id] = task
+			tm.eventObserver.NewTask(task)
 			go func(t Task){
 				// To limit number
 				taskLimiter <-0
-				logger.GetLogger().Info("Begin task",t.ToString())
-				t = t.Start(tm.folder)
-				logger.GetLogger().Info("End task",t.GetInfo().Id,t.GetInfo().Status)
-				// Move task in finished list
-				tm.finishedTasks[t.GetInfo().Id] = t
-				delete(tm.tasks,t.GetInfo().Id)
+				//tm.launchTask(t)
 				<- taskLimiter
 			}(task)
 		}
 	}()
 }
 
+func (tm * TasksManager)launchTask(task Task){
+	info := task.GetInfo()
+	info.Status = StatusRunning
+	tm.eventObserver.UpdateTask(task)
+	logger.GetLogger().Info("Begin task",task.ToString())
+
+	task = task.Start(tm.folder)
+
+	logger.GetLogger().Info("End task",info.Id,task.GetInfo().Status)
+	tm.eventObserver.UpdateTask(task)
+	tm.finishedTasks[info.Id] = task
+	delete(tm.tasks,info.Id)
+}
+
 func (tm * TasksManager)runStatsGetter(){
 	go func(){
 		for {
-			stats := Stats{}
-			stats.CPU = hardwareutil.GetCPUUsage()
-			stats.Memory = hardwareutil.GetCurrentMemory()
-			stats.NbTaskers = tm.NbParallelTask
-			stats.Load = tm.GetLoad()
-			stats.NbTasks = len(tm.tasks)
-			stats.Temperature = hardwareutil.GetTemperature()
-			stats.ID = tm.url
-			tm.stats = stats
+			tm.stats = getStats(*tm)
 			time.Sleep(time.Second * 1)
 		}
 	}()
@@ -120,6 +147,52 @@ func (tm * TasksManager)SetFolder(folder string){
 	tm.folder = folder
 }
 
+func (tm TasksManager)GetInfoTasks()[]Info{
+	infos := make([]Info,0,len(tm.tasks))
+	for _,t := range tm.tasks {
+		infos = append(infos,*t.GetInfo())
+	}
+	return infos
+}
+
+// GetInfoTasks return info about tasks running or to be running over all nodes
+func (tm TasksManager)GetAllInfoTasks()[]Info{
+	infos := make([]Info,0,len(tm.tasks)*(len(tm.nodes)+1))
+	infoChan := make(chan Info)
+	wait := sync.WaitGroup{}
+	wait.Add(len(tm.nodes)+1)
+
+	// Treat task infos
+	go func(){
+		for info := range infoChan {
+			infos = append(infos,info)
+			wait.Done()
+		}
+	}()
+
+	// Tasks of nodes
+	for _,n := range tm.nodes {
+		go func(nc NodeClient){
+			tasks := nc.GetTasks()
+			wait.Add(len(tasks))
+			for _,info := range tasks{
+				infoChan <- info
+			}
+			wait.Done()
+		}(n)
+	}
+
+	// tasks of local node
+	for _,t := range tm.tasks {
+		wait.Add(1)
+		infoChan <- *t.GetInfo()
+	}
+	wait.Done()
+	wait.Wait()
+
+
+	return infos
+}
 
 // GetStatusTask return the status of the task. Real id is after the last :, before it's the server address
 func (tm TasksManager)GetStatusTask(id string)int8{

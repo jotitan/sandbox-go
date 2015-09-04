@@ -3,8 +3,8 @@
 var Loader = {
     modules : [],
     current:0,
-    toLoad:function(url){
-        this.modules.push(url);
+    toLoad:function(url,initFct){
+        this.modules.push({url:url,fct:initFct});
     },
     launch:function(callback){
         this.current = 0;
@@ -16,7 +16,11 @@ var Loader = {
                 callback();
             }
         }else{
-            var div = $('<div></div>').load(this.modules[this.current],function(){
+            var element =this.modules[this.current];
+            var div = $('<div></div>').load(element.url,function(){
+                if(element.fct){
+                    window[element.fct].init()
+                }
                 Loader.current++;
                 Loader._load(callback);
             });

@@ -12,16 +12,6 @@ import (
 )
 
 
-type Stats struct {
-	Memory int
-	CPU int
-	NbTaskers int
-	NbTasks int
-	Load float64
-	Temperature float32
-	ID string
-}
-
 // NodeClient
 type NodeClient struct {
 	Url string
@@ -59,6 +49,16 @@ func (n NodeClient)GetLoad()float64{
 	return 0
 }
 
+// GetTasks get all tasks of nodes
+func (n NodeClient)GetTasks()[]Info{
+	if resp,err := http.DefaultClient.Get(fmt.Sprintf("%s/tasks",n.Url)) ; err == nil && resp!=nil {
+		data,_ := ioutil.ReadAll(resp.Body)
+		var infos []Info
+		json.Unmarshal(data,&infos)
+		return infos
+	}
+	return []Info{}
+}
 
 // GetStats return stats about node : mem, cpu, load, nb tasks, available task thread
 func (n NodeClient)GetStats()Stats{

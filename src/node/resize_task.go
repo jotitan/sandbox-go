@@ -23,7 +23,6 @@ func (tm TasksManager)NewResizeTask(from,to string,width,height uint)ResizeTask{
 }
 
 func (task ResizeTask)Start(folder string)Task{
-	task.info.Status = StatusRunning
 	task.info.StartTime = time.Now()
 	if err := resize.Resize(filepath.Join(folder,task.from), filepath.Join(folder,task.to), task.width,task.height) ; err == nil {
 		task.info.Status = StatusDone

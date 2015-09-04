@@ -23,6 +23,7 @@
     <script src="js/cluster.js"></script>
     <script src="js/clock.js"></script>
     <script src="js/log_viewer.js"></script>
+    <script src="js/tasks.js"></script>
 </head>
 <body>
 
@@ -59,6 +60,10 @@
                 <li class="dropdown">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">Nodes <span class="caret"></span></a>
                     <ul class="dropdown-menu" role="menu">
+                        <li><a href="#" onclick="TasksPanel.open()">
+                            <span class="glyphicon glyphicon-signal"></span>
+                            Tasks...</a>
+                        </li>
                         <li><a href="#" onclick="GraphicAction.showPanel()">
                             <span class="glyphicon glyphicon-signal"></span>
                             Graphics...</a>

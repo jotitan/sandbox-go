@@ -53,9 +53,6 @@ var Panel = {
         return this.div.is(":visible")
     },
     open:function(){
-        if(this._open){
-            this._open();
-        }
         this.div.trigger('open');
         this.show()
         WindowsNavManager.add(this)

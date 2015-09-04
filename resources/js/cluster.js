@@ -60,7 +60,20 @@ function showLightCluster(data){
     $('.light_node:not(:data(update)):visible').remove()
 }
 
+
+function loadSSE(){
+    var SSE = new EventSource('/statsAsSSE');
+    SSE.onmessage = function(event){
+        console.log(event)
+    }
+    SSE.onerror = function(){
+        console.log('error',arguments)
+        SSE.close();
+    }
+}
+
 function loadClusterdata(){
+    loadSSE();
     $.ajax({
         url:'/allStats',
         dataType:'json',

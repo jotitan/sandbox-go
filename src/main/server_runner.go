@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"net"
 	"strings"
+	"time"
 )
 
 /* Launch a server to treat resize image */
@@ -49,6 +50,21 @@ func getStatusTask(response http.ResponseWriter,request *http.Request){
 	response.Write([]byte(fmt.Sprintf("%d",status)))
 }
 
+// Return all tasks
+func getTasks(response http.ResponseWriter,request *http.Request){
+	infos := tasksManager.GetInfoTasks()
+	data,_ := json.Marshal(infos)
+	response.Write(data)
+}
+
+
+// Return all tasks
+func getAllTasks(response http.ResponseWriter,request *http.Request){
+	infos := tasksManager.GetAllInfoTasks()
+	data,_ := json.Marshal(infos)
+	response.Write(data)
+}
+
 
 func root(response http.ResponseWriter, request *http.Request){
 	url := request.RequestURI
@@ -58,6 +74,34 @@ func root(response http.ResponseWriter, request *http.Request){
 // Use to find node with very short timeout
 func status(response http.ResponseWriter, request *http.Request){
 	response.Write([]byte("Up"))
+}
+
+// Return stats by server side event
+func statsAsSSE(response http.ResponseWriter, request *http.Request){
+	response.Header().Set("Content-Type","text/event-stream")
+	response.Header().Set("Cache-Control","no-cache")
+	response.Header().Set("Connection","keep-alive")
+	response.Header().Set("Access-Control-Allow-Origin","*")
+
+
+	go func(){
+		<-response.(http.CloseNotifier).CloseNotify()
+		logger.GetLogger().Error("ERROR CLOSE")
+	}()
+
+	go func(){
+		//stats := tasksManager.GetStats()
+		//data,_:= json.Marshal(stats)
+		for {
+			response.Write([]byte("blabla\n"))
+			//response.Write([]byte("retry:1000\n"))
+			//response.Write([]byte("data:" + string(data) + "\n\n"))
+			response.Write([]byte("data:  bonjour  \n\n"))
+			response.(http.Flusher).Flush()
+			logger.GetLogger().Info("Flush")
+			time.Sleep(1 * time.Second)
+		}
+	}()
 }
 
 // Use to find node with very short timeout
@@ -148,8 +192,11 @@ func createRoutes()*http.ServeMux{
 	mux.HandleFunc("/register",registerNode)
 	mux.HandleFunc("/add",addTask)
 	mux.HandleFunc("/stats",stats)
+	mux.HandleFunc("/statsAsSSE",statsAsSSE)
 	mux.HandleFunc("/allStats",allStats)
 	mux.HandleFunc("/taskStatus",getStatusTask)
+	mux.HandleFunc("/tasks",getTasks)
+	mux.HandleFunc("/allTasks",getAllTasks)
 	mux.HandleFunc("/",root)
 	return mux
 }

@@ -1,13 +1,14 @@
-/* Show log of a server */
+/* Show tasks from server */
 
 if(Loader){Loader.toLoad("html/tasks.html","TasksPanel");}
 
 var TasksPanel = {
+    tasksSSE:null,
     init:function(){
         $.extend(this,Panel)
-        this.initPanel($('#idTasks'),'Tasks')
+        this.initPanel($('#idTasks'),'<span class="glyphicon glyphicon-list-alt icon"></span>Tasks')
         this.div.resizable()
-        this.panel = $('.tasks',this.div);
+        this.panel = $('.tasks > tbody',this.div);
         var _self = this;
         this.div.bind('close',function(){
             _self.stop();
@@ -18,38 +19,47 @@ var TasksPanel = {
         })
     },
     stop:function(){
-
+       this.panel.empty();
+       if(this.tasksSSE!=null){
+        this.tasksSSE.close();
+        this.tasksSSE = null;
+       }
     },
     start:function(){
-        // Check every second new data
-        this._loadTasks();
-        setTimeout(function(){
-            TasksPanel._loadTasks();
-        },2000)
+        // Use SSE to get all tasks
+        this.tasksSSE = new EventSource('/allTasksAsSSE')
+        this.tasksSSE.onmessage = function(data){
+            TasksPanel._displayTasks(JSON.parse(data.data))
+        }
+        this.tasksSSE.onerror = function(){
+            TasksPanel.stop();
+            console.log("=>Error")
+        }
     },
-    _loadTasks:function(){
-        $.ajax({
-            url:'/allTasks',
-            dataType:'json',
-            success:function(data){
-                TasksPanel._displayTasks(data);
-            }
-        })
+    _getStatus:function(status){
+        var results = ["",""];
+        switch(status){
+            case 0:results[0]="New";results[1] = "blue";break;
+            case 1:results[0]="Running";results[1] = "orange";break;
+            case 2:results[0]="End";results[1] = "green";break;
+            default:results[0]="Error";results[1] = "red";break;
+        }
+        return results;
     },
     _displayTasks:function(tasks){
         tasks.forEach(function(t){
-            var line = $('div[data-id-task="' + t.Id + '"]',this.panel);
+            var line = $('tr[data-id-task="' + t.Id + '"]',this.panel);
+            var status = TasksPanel._getStatus(t.Status);
             if(line.length == 0){
                 // New one
-                line = $('<div class="task-info" data-id-task="' + t.Id + '">ID : ' + t.Id + '</div>')
-
-                this.panel.append(line);
+                line = $('<tr class="task-info" data-id-task="' + t.Id + '"><td>' + t.Id +'</td>' +
+                '<td>' + t.TypeTask + '</td><td class="status" style="color:' + status[1] + '">' + status[0] + '</td></tr>')
+                this.panel.prepend(line);
             }else{
-                console.log("Already have, update line remove")
+                $('td.status',line).css('color',status[1]).html(status[0]);
+                // Update, go up
+                this.panel.prepend(line)
             }
-            line.data('visited',true);
         },this)
-        $('.task-info:not(:data("visited"))',this.panel).remove()
-        $('.task-info').removeData('visited');
     }
 }

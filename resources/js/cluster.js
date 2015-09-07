@@ -9,8 +9,9 @@ function initClusterStatus(){
     WindowsNavManager.init("idWindowsNav")
     MiniStatusViewer.init("idMiniStatus")
 
-    loadClusterdata()
-    autoRefresh(FREQUENCE_REFRESH)
+    loadStats();
+    //loadClusterdata()
+    //autoRefresh(FREQUENCE_REFRESH)
 
     // To toogle menu when click on button
     $('.dropdown-menu > li').bind('click',function(){$('.collapse').collapse('hide')})
@@ -23,7 +24,7 @@ function initClusterStatus(){
     })
 }
 
-function autoRefresh(frq){
+/*function autoRefresh(frq){
     setInterval(function(){
         loadClusterdata()
     },frq)
@@ -37,7 +38,7 @@ function loadLightCluster(){
           showLightCluster(data)
       }
   })
-}
+} */
 
 function showLightCluster(data){
     $('.light_node').removeData('update')
@@ -61,19 +62,29 @@ function showLightCluster(data){
 }
 
 
-function loadSSE(){
+function loadStats(){
     var SSE = new EventSource('/statsAsSSE');
     SSE.onmessage = function(event){
-        console.log(event)
+        disconnectTime = null
+        $('.node').removeClass('disconnect')
+        $('#idInfoCluster').html('')
+        showCluster(JSON.parse(event.data))
     }
     SSE.onerror = function(){
-        console.log('error',arguments)
+        disconnectTime = disconnectTime || new Date()
+        delta = Math.round((new Date(new Date().getTime() - disconnectTime.getTime()))/1000)
+        $('#idInfoCluster').html('Off since ' + delta + ' s')
+        $('.node').addClass('disconnect')
         SSE.close();
+        // Try to reconnect
+        loadStats()
     }
+    SSE.addEventListener('ping',function(){
+        console.log("PING=>",arguments)
+    },false)
 }
 
-function loadClusterdata(){
-    loadSSE();
+/*function loadClusterdata(){
     $.ajax({
         url:'/allStats',
         dataType:'json',
@@ -89,7 +100,7 @@ function loadClusterdata(){
             $('.node').addClass('disconnect')
         }
     })
-}
+} */
 
 /* Display cluster info */
 function showCluster(data){

@@ -12,6 +12,7 @@ import (
 	"net"
 	"strings"
 	"time"
+	"bufio"
 )
 
 /* Launch a server to treat resize image */
@@ -57,12 +58,85 @@ func getTasks(response http.ResponseWriter,request *http.Request){
 	response.Write(data)
 }
 
-
 // Return all tasks
 func getAllTasks(response http.ResponseWriter,request *http.Request){
 	infos := tasksManager.GetAllInfoTasks()
 	data,_ := json.Marshal(infos)
 	response.Write(data)
+}
+
+// getTasksAsSSE return in a server sent event. All new tasks are notified
+func getTasksAsSSE(response http.ResponseWriter,request *http.Request){
+	infos := tasksManager.GetInfoTasks()
+	dataInfos,_ := json.Marshal(infos)
+	// Send all init tasks, then send only updated tasks
+	o,stream := node.NewTaskObserver()
+	tasksManager.Register("1",o)
+
+	createSSEHeader(response)
+	logger.GetLogger().Info("Get request tasks SSE")
+	response.Write([]byte("data: " + string(dataInfos) + "\n\n"))
+	response.(http.Flusher).Flush()
+	for data := range stream {
+		response.Write([]byte("data: " + string(data) + "\n\n"))
+		response.(http.Flusher).Flush()
+	}
+}
+
+// getAllTasksAsSSE return all tasks in sse (use client sse)
+func getAllTasksAsSSE(response http.ResponseWriter,request *http.Request){
+	stream := make(chan []byte)
+
+	// TODO add end event
+
+	// Get infos of nodes
+	for _,url := range tasksManager.GetNodes(){
+		go func(u string) {
+			resp, _ := http.DefaultClient.Get(u + "/tasksAsSSE")
+			reader := bufio.NewReader(resp.Body)
+			for {
+				data, _, err := reader.ReadLine()
+				if err != nil {
+					return
+				}
+				if string(data) != "" {
+					stream <- []byte(strings.Replace(string(data),"data: ","",-1))
+				}
+			}
+		}(url)
+	}
+
+	go func() {
+		infos := tasksManager.GetInfoTasks()
+		dataInfos, _ := json.Marshal(infos)
+		stream <- dataInfos
+		tasksManager.Register("1",node.NewTaskObserverFromStream(stream))
+	}()
+
+	createSSEHeader(response)
+
+	for data := range stream {
+		response.Write([]byte("data: " + string(data) + "\n\n"))
+		response.(http.Flusher).Flush()
+	}
+}
+
+
+func toto(response http.ResponseWriter, request * http.Request){
+	url := "http://10.30.24.110:9011/statsAsSSE"
+	resp,_ := http.DefaultClient.Get(url)
+
+	reader := bufio.NewReader(resp.Body)
+	for {
+		data,_,err := reader.ReadLine()
+		if err != nil {
+		    logger.GetLogger().Info("ERR",err)
+				return
+		}
+		if string(data)!="" {
+			logger.GetLogger().Info("DAT=>", string(data))
+		}
+	}
 }
 
 
@@ -76,32 +150,39 @@ func status(response http.ResponseWriter, request *http.Request){
 	response.Write([]byte("Up"))
 }
 
-// Return stats by server side event
-func statsAsSSE(response http.ResponseWriter, request *http.Request){
+func createSSEHeader(response http.ResponseWriter){
 	response.Header().Set("Content-Type","text/event-stream")
 	response.Header().Set("Cache-Control","no-cache")
 	response.Header().Set("Connection","keep-alive")
 	response.Header().Set("Access-Control-Allow-Origin","*")
+}
 
+// Return stats by server side event
+func statsAsSSE(response http.ResponseWriter, request *http.Request){
+	createSSEHeader(response)
+	sendStats(response)
+}
 
+func sendStats(r http.ResponseWriter){
+	defer func(){
+		if err := recover() ; err != nil {}
+	}()
+	stop := false
 	go func(){
-		<-response.(http.CloseNotifier).CloseNotify()
-		logger.GetLogger().Error("ERROR CLOSE")
+		<-r.(http.CloseNotifier).CloseNotify()
+		stop=true
 	}()
 
-	go func(){
-		//stats := tasksManager.GetStats()
-		//data,_:= json.Marshal(stats)
-		for {
-			response.Write([]byte("blabla\n"))
-			//response.Write([]byte("retry:1000\n"))
-			//response.Write([]byte("data:" + string(data) + "\n\n"))
-			response.Write([]byte("data:  bonjour  \n\n"))
-			response.(http.Flusher).Flush()
-			logger.GetLogger().Info("Flush")
-			time.Sleep(1 * time.Second)
+	for {
+		stats := tasksManager.GetAllStats()
+		data, _ := json.Marshal(stats)
+		r.Write([]byte("data: " + string(data) + "\n\n"))
+		if stop == true{
+			break
 		}
-	}()
+		r.(http.Flusher).Flush()
+		time.Sleep(1 * time.Second)
+	}
 }
 
 // Use to find node with very short timeout
@@ -197,6 +278,9 @@ func createRoutes()*http.ServeMux{
 	mux.HandleFunc("/taskStatus",getStatusTask)
 	mux.HandleFunc("/tasks",getTasks)
 	mux.HandleFunc("/allTasks",getAllTasks)
+	mux.HandleFunc("/tasksAsSSE",getTasksAsSSE)
+	mux.HandleFunc("/allTasksAsSSE",getAllTasksAsSSE)
+	mux.HandleFunc("/toto",toto)
 	mux.HandleFunc("/",root)
 	return mux
 }

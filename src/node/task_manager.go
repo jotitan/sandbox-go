@@ -7,6 +7,7 @@ import (
 	"logger"
 	"strings"
 	"time"
+	"encoding/json"
 )
 
 
@@ -84,6 +85,34 @@ func (obs EventObserver)UpdateTask(task Task){
 	}
 }
 
+// TaskObserver stream implementation of observer
+type TaskObserver struct{
+	stream chan []byte
+}
+
+func NewTaskObserverFromStream(channel chan []byte)(Observer){
+	return TaskObserver{channel}
+}
+
+func NewTaskObserver()(Observer,chan []byte){
+	channel := make(chan []byte)
+	return TaskObserver{channel},channel
+}
+
+func (to TaskObserver)NewTask(task Task){
+	data,_ := json.Marshal([]Info{*task.GetInfo()})
+	to.stream <- data
+}
+
+func (to TaskObserver)UpdateTask(task Task){
+	data,_ := json.Marshal([]Info{*task.GetInfo()})
+	to.stream <- data
+}
+
+func (tm * TasksManager)Register(id string,observer Observer){
+	tm.eventObserver.Register(id,observer)
+}
+
 func NewTaskManager(nbTask int,localUrl string)*TasksManager{
 	seq := NewSequence(localUrl)
 	tm := TasksManager{NbParallelTask:nbTask,
@@ -113,7 +142,7 @@ func (tm * TasksManager)runTasksConsumer(nbTask int){
 			go func(t Task){
 				// To limit number
 				taskLimiter <-0
-				//tm.launchTask(t)
+				tm.launchTask(t)
 				<- taskLimiter
 			}(task)
 		}
@@ -190,7 +219,6 @@ func (tm TasksManager)GetAllInfoTasks()[]Info{
 	wait.Done()
 	wait.Wait()
 
-
 	return infos
 }
 
@@ -230,6 +258,18 @@ func (tm * TasksManager) DiscoverNetwork(baseIP string, rangePort []int, rangeIP
 		}
 	}
 }
+
+// GetNodes return connected nodes (not the local)
+func (tm TasksManager)GetNodes()[]string{
+	nodes := make([]string,0,len(tm.nodes)-1)
+	for url,_ := range tm.nodes {
+		if url != tm.url {
+			nodes = append(nodes,url)
+		}
+	}
+	return nodes
+}
+
 
 func (tm * TasksManager)RegisterNode(nodeURL string)(NodeClient,error){
 	if _,present := tm.nodes[nodeURL] ; present {

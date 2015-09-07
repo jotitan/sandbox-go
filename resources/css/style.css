@@ -390,3 +390,18 @@ label > [type="checkbox"] {
 .message-cluster.error{
     color:red;
 }
+
+/* Tasks table */
+.tasks td {
+    padding-left:5px;
+    padding-right:5px;
+}
+
+.tasks th {
+    text-align:center;
+    background-color:lightgreen;
+}
+
+span.glyphicon.icon {
+    padding-right:5px;
+}

@@ -43,30 +43,35 @@ func (sq * Sequence)Next()string{
 type TasksManager struct {
 	// Number of parallel task which are accepted
 	NbParallelTask int
-	//
+	// url of the node (ip:port)
 	url string
 	// List of all tasks
 	tasks map[string]Task
 	finishedTasks map[string]Task
-
+	// Return an internal unique id
 	seq * Sequence
-
+	// channel where task are push to be treated
 	taskChan chan Task
 	// List of node of cluster. Usefull to deport treatment on other node
 	nodes map[string]NodeClient
-	// FOlder where photos and cache can be found
+	// Folder where photos and cache can be found
 	folder string
+	// last value for stats
 	stats Stats
+	// observer of tasks events
 	eventObserver EventObserver
 }
 
 
+// BuildTask build a task from rest parameter
 func (tm * TasksManager)BuildTask(typeTask string,values map[string][]string,force bool)(string,error) {
 	switch typeTask {
 		case WaitTaskType :
-			waitTime, _ := strconv.ParseInt(values["wait"][0], 10, 0)
-			return tm.AddTask(tm.NewWaitTask(int(waitTime)),force),nil
-
+			waitTime, err := strconv.ParseInt(values["wait"][0], 10, 0)
+			if err == nil {
+				return tm.AddTask(tm.NewWaitTask(int(waitTime)), force), nil
+			}
+			return "",errors.New("Impossible to get parameters")
 		case ResizeTaskType :
 			width, _ := strconv.ParseInt(values["width"][0], 10, 0)
 			height, _ := strconv.ParseInt(values["height"][0], 10, 0)
@@ -79,6 +84,7 @@ func (tm * TasksManager)BuildTask(typeTask string,values map[string][]string,for
 	return "",errors.New("Impossible case")
 }
 
+// Observer is an interface which define what is an observer
 type Observer interface{
 	NewTask(task Task)
 	UpdateTask(task Task)
@@ -91,6 +97,7 @@ type EventObserver struct {
 	locker sync.Mutex
 }
 
+// NewEventObservercreate a new event observer
 func NewEventObserver()EventObserver{
 	return EventObserver{observers:make(map[int]Observer),
 		currentId:0,
@@ -98,10 +105,12 @@ func NewEventObserver()EventObserver{
 	}
 }
 
+// Remove an observer from the list
 func (obs * EventObserver)Remove(id int){
 	delete(obs.observers,id)
 }
 
+// Register a new observer in the list. Return the created id
 func (obs * EventObserver)Register(observer Observer)int{
 	obs.locker.Lock()
 	obs.currentId++
@@ -111,12 +120,14 @@ func (obs * EventObserver)Register(observer Observer)int{
 	return id
 }
 
+// NewTask is launch when a new task is created
 func (obs EventObserver)NewTask(task Task){
 	for _,observer := range obs.observers {
 		go observer.NewTask(task)
 	}
 }
 
+// UpdateTask is launch when an update on a task is done
 func (obs EventObserver)UpdateTask(task Task){
 	for _,observer := range obs.observers {
 		go observer.UpdateTask(task)
@@ -128,10 +139,12 @@ type TaskObserver struct{
 	stream chan []byte
 }
 
+// NewTaskObserverFromStream create a new TaskObserver
 func NewTaskObserverFromStream(channel chan []byte)(Observer){
 	return TaskObserver{channel}
 }
 
+// NewTaskObserver create a new task observer
 func NewTaskObserver()(Observer,chan []byte){
 	channel := make(chan []byte)
 	return TaskObserver{channel},channel
@@ -155,6 +168,7 @@ func (tm * TasksManager)RemoveObserver(id int){
 	tm.eventObserver.Remove(id)
 }
 
+// NewTaskManager create a new Task manager
 func NewTaskManager(nbTask int,localUrl string)*TasksManager{
 	seq := NewSequence(localUrl)
 	tm := TasksManager{NbParallelTask:nbTask,

@@ -3,8 +3,7 @@ import (
     "net/http"
     "fmt"
     "strconv"
-    "resize"
-    "runtime"
+	"runtime"
 	"node"
 	"arguments"
 	"logger"
@@ -209,28 +208,11 @@ func registerNode(response http.ResponseWriter, request *http.Request){
 	tasksManager.RegisterNode(url)
 }
 
-func extractInt(r *http.Request,name string)int{
-	if intValue := r.FormValue(name) ; intValue!="" {
-		if value,err := strconv.ParseInt(intValue,10,0) ; err == nil {
-			return int(value)
-		}
-	}
-	return 0
-}
-
 func load(response http.ResponseWriter, r *http.Request){
 	load := tasksManager.GetLoad()
 	str := fmt.Sprintf("{\"load\":%f}",load)
 	response.Header().Set("Content-type","application/json")
 	response.Write([]byte(str))
-}
-
-func resizeReq(_ http.ResponseWriter, r *http.Request){
-    from := r.FormValue("from")
-    to := r.FormValue("to")
-	height,width := extractInt(r,"height"),extractInt(r,"width")
-
-    resize.ResizeMany(from,to,uint(width),uint(height))
 }
 
 func findExposedURL()string{
@@ -269,7 +251,6 @@ func createServer(port string,baseIP string,rangeIP []int,rangePort []int,nbTask
 
 func createRoutes()*http.ServeMux{
 	mux := http.NewServeMux()
-	mux.HandleFunc("/resize",resizeReq)
 	mux.HandleFunc("/load",load)
 	mux.HandleFunc("/status",status)
 	mux.HandleFunc("/register",registerNode)

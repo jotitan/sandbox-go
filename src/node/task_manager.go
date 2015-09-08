@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 	"encoding/json"
+	"strconv"
 )
 
 
@@ -57,6 +58,25 @@ type TasksManager struct {
 	folder string
 	stats Stats
 	eventObserver EventObserver
+}
+
+
+func (tm * TasksManager)BuildTask(typeTask string,values map[string][]string,force bool)(string,error) {
+	switch typeTask {
+		case WaitTaskType :
+			waitTime, _ := strconv.ParseInt(values["wait"][0], 10, 0)
+			return tm.AddTask(tm.NewWaitTask(int(waitTime)),force),nil
+
+		case ResizeTaskType :
+			width, _ := strconv.ParseInt(values["width"][0], 10, 0)
+			height, _ := strconv.ParseInt(values["height"][0], 10, 0)
+			from := values["from"][0]
+			to := values["to"][0]
+			return tm.AddTask(tm.NewResizeTask(from, to, uint(width), uint(height)),force),nil
+		default :return "",errors.New("Impossible to define task with name " + typeTask)
+	}
+
+	return "",errors.New("Impossible case")
 }
 
 type Observer interface{

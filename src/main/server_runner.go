@@ -22,27 +22,17 @@ var tasksManager * node.TasksManager
 
 // Return the id of task to track it
 func addTask(response http.ResponseWriter, request *http.Request){
-	var task node.Task
+	//var task node.Task
 	force := false
 	if forceValue := request.FormValue("force") ; forceValue == "true" || forceValue == "1"{
 		force = true
 	}
 	logger.GetLogger().Info("=>RECEIVE EVENT", request.FormValue("type"))
-	switch request.FormValue("type") {
-		case node.WaitTaskType :
-		waitTime,_ := strconv.ParseInt(request.FormValue("wait"),10,0)
-		task = tasksManager.NewWaitTask(int(waitTime))
-
-		case node.ResizeTaskType :
-		width,_ := strconv.ParseInt(request.FormValue("width"),10,0)
-		height,_ := strconv.ParseInt(request.FormValue("height"),10,0)
-		from:=request.FormValue("from")
-		to:=request.FormValue("to")
-		task = tasksManager.NewResizeTask(from,to,uint(width),uint(height))
-	}
-	if task != nil {
-		realID := tasksManager.AddTask(task,force)
-		response.Write([]byte(realID))
+	if id,err := tasksManager.BuildTask(request.FormValue("type") ,request.Form,force) ; err == nil {
+		response.WriteHeader(202)
+		response.Write([]byte(id))
+	}else{
+		http.Error(response,err.Error(),400)
 	}
 }
 
@@ -67,8 +57,8 @@ func getAllTasks(response http.ResponseWriter,request *http.Request){
 }
 
 type SSEWriter struct{
-	f http.Flusher
 	w io.Writer
+	f http.Flusher
 }
 
 func (sse SSEWriter)Write(message string){

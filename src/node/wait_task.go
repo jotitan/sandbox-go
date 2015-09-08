@@ -18,8 +18,10 @@ func (tm TasksManager)NewWaitTask(wait int)WaitTask{
 }
 
 func (task WaitTask)Start(_ string)Task{
+	task.info.StartTime = time.Now()
 	time.Sleep(time.Duration(task.wait) * time.Millisecond)
 	task.info.Status = StatusDone
+	task.info.EndTime = time.Now()
 	return task
 }
 

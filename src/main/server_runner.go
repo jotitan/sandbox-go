@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 	"bufio"
+	"io"
 )
 
 /* Launch a server to treat resize image */
@@ -65,39 +66,69 @@ func getAllTasks(response http.ResponseWriter,request *http.Request){
 	response.Write(data)
 }
 
+type SSEWriter struct{
+	f http.Flusher
+	w io.Writer
+}
+
+func (sse SSEWriter)Write(message string){
+	sse.w.Write([]byte("data: " + message + "\n\n"))
+	sse.f.Flush()
+}
+
 // getTasksAsSSE return in a server sent event. All new tasks are notified
 func getTasksAsSSE(response http.ResponseWriter,request *http.Request){
+	logger.GetLogger().Info("Get request tasks SSE")
+	sse := SSEWriter{response,response.(http.Flusher)}
+
 	infos := tasksManager.GetInfoTasks()
 	dataInfos,_ := json.Marshal(infos)
 	// Send all init tasks, then send only updated tasks
 	o,stream := node.NewTaskObserver()
-	tasksManager.Register("1",o)
+	idObserver := tasksManager.Register(o)
+
+	go func(){
+		<-response.(http.CloseNotifier).CloseNotify()
+		tasksManager.RemoveObserver(idObserver)
+		close(stream)
+	}()
 
 	createSSEHeader(response)
-	logger.GetLogger().Info("Get request tasks SSE")
-	response.Write([]byte("data: " + string(dataInfos) + "\n\n"))
-	response.(http.Flusher).Flush()
+
+	sse.Write(string(dataInfos))
 	for data := range stream {
-		response.Write([]byte("data: " + string(data) + "\n\n"))
-		response.(http.Flusher).Flush()
+		sse.Write(string(data))
 	}
 }
 
 // getAllTasksAsSSE return all tasks in sse (use client sse)
 func getAllTasksAsSSE(response http.ResponseWriter,request *http.Request){
 	stream := make(chan []byte)
+	stop := false
+	idObserver := 0
 
-	// TODO add end event
+	go func(){
+		<-response.(http.CloseNotifier).CloseNotify()
+		stop=true
+		tasksManager.RemoveObserver(idObserver)
+		close(stream)
+	}()
 
 	// Get infos of nodes
 	for _,url := range tasksManager.GetNodes(){
 		go func(u string) {
+			defer func(){
+				if err := recover();err != nil {}
+			}()
 			resp, _ := http.DefaultClient.Get(u + "/tasksAsSSE")
 			reader := bufio.NewReader(resp.Body)
 			for {
 				data, _, err := reader.ReadLine()
 				if err != nil {
 					return
+				}
+				if stop == true{
+					break
 				}
 				if string(data) != "" {
 					stream <- []byte(strings.Replace(string(data),"data: ","",-1))
@@ -110,35 +141,16 @@ func getAllTasksAsSSE(response http.ResponseWriter,request *http.Request){
 		infos := tasksManager.GetInfoTasks()
 		dataInfos, _ := json.Marshal(infos)
 		stream <- dataInfos
-		tasksManager.Register("1",node.NewTaskObserverFromStream(stream))
+		idObserver = tasksManager.Register(node.NewTaskObserverFromStream(stream))
 	}()
 
 	createSSEHeader(response)
+	sse := SSEWriter{response,response.(http.Flusher)}
 
 	for data := range stream {
-		response.Write([]byte("data: " + string(data) + "\n\n"))
-		response.(http.Flusher).Flush()
+		sse.Write(string(data))
 	}
 }
-
-
-func toto(response http.ResponseWriter, request * http.Request){
-	url := "http://10.30.24.110:9011/statsAsSSE"
-	resp,_ := http.DefaultClient.Get(url)
-
-	reader := bufio.NewReader(resp.Body)
-	for {
-		data,_,err := reader.ReadLine()
-		if err != nil {
-		    logger.GetLogger().Info("ERR",err)
-				return
-		}
-		if string(data)!="" {
-			logger.GetLogger().Info("DAT=>", string(data))
-		}
-	}
-}
-
 
 func root(response http.ResponseWriter, request *http.Request){
 	url := request.RequestURI
@@ -280,7 +292,6 @@ func createRoutes()*http.ServeMux{
 	mux.HandleFunc("/allTasks",getAllTasks)
 	mux.HandleFunc("/tasksAsSSE",getTasksAsSSE)
 	mux.HandleFunc("/allTasksAsSSE",getAllTasksAsSSE)
-	mux.HandleFunc("/toto",toto)
 	mux.HandleFunc("/",root)
 	return mux
 }

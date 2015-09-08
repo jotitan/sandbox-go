@@ -50,13 +50,23 @@ var TasksPanel = {
         tasks.forEach(function(t){
             var line = $('tr[data-id-task="' + t.Id + '"]',this.panel);
             var status = TasksPanel._getStatus(t.Status);
+            var time = 0;
+            if (new Date(t.StartTime).getTime() > 0){
+                var time = (new Date(t.EndTime) - new Date(t.StartTime))/1000;
+                if (time < 0){
+                    var time = (new Date() - new Date(t.StartTime))/1000;
+                }
+                time = Math.round(time*10)/10;
+            }
             if(line.length == 0){
                 // New one
                 line = $('<tr class="task-info" data-id-task="' + t.Id + '"><td>' + t.Id +'</td>' +
-                '<td>' + t.TypeTask + '</td><td class="status" style="color:' + status[1] + '">' + status[0] + '</td></tr>')
+                '<td>' + t.TypeTask + '</td><td class="time">' + time + ' s</td>' +
+                '<td class="status" style="color:' + status[1] + '">' + status[0] + '</td></tr>')
                 this.panel.prepend(line);
             }else{
                 $('td.status',line).css('color',status[1]).html(status[0]);
+                $('td.time',line).html(time + " s");
                 // Update, go up
                 this.panel.prepend(line)
             }

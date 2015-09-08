@@ -102,21 +102,6 @@ func getMarker(bloc,data []byte)Marker{
 
 
 func main(){
-
-	/*data := map[int]int{3:6,5:10,7:14,9:18}
-
-	go func(){
-		time.Sleep(1 * time.Second)
-		fmt.Println(data)
-		delete(data,7)
-		fmt.Println(data)
-	}()
-
-	for key,val := range data{
-		fmt.Println("=>",key,val)
-		time.Sleep(1 * time.Second)
-	}    */
-
 	run()
 }
 
@@ -131,7 +116,7 @@ func create(){
 }
 
 func run(){
-	nb := 10
+	nb := 50
 	waiter := sync.WaitGroup{}
 	waiter.Add(nb)
 	for i := 0 ; i < nb ; i++ {

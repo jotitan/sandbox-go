@@ -66,11 +66,29 @@ type Observer interface{
 
 // EventObserver manage observer of tasks activities
 type EventObserver struct {
-	observers map[string]Observer
+	observers map[int]Observer
+	currentId int
+	locker sync.Mutex
 }
 
-func (obs * EventObserver)Register(id string,observer Observer){
+func NewEventObserver()EventObserver{
+	return EventObserver{observers:make(map[int]Observer),
+		currentId:0,
+		locker:sync.Mutex{},
+	}
+}
+
+func (obs * EventObserver)Remove(id int){
+	delete(obs.observers,id)
+}
+
+func (obs * EventObserver)Register(observer Observer)int{
+	obs.locker.Lock()
+	obs.currentId++
+	id :=obs.currentId
+	obs.locker.Unlock()
 	obs.observers[id] = observer
+	return id
 }
 
 func (obs EventObserver)NewTask(task Task){
@@ -109,8 +127,12 @@ func (to TaskObserver)UpdateTask(task Task){
 	to.stream <- data
 }
 
-func (tm * TasksManager)Register(id string,observer Observer){
-	tm.eventObserver.Register(id,observer)
+func (tm * TasksManager)Register(observer Observer)int{
+	return tm.eventObserver.Register(observer)
+}
+
+func (tm * TasksManager)RemoveObserver(id int){
+	tm.eventObserver.Remove(id)
 }
 
 func NewTaskManager(nbTask int,localUrl string)*TasksManager{
@@ -122,7 +144,7 @@ func NewTaskManager(nbTask int,localUrl string)*TasksManager{
 		seq:&seq,
 		taskChan:make(chan Task),
 		nodes:make(map[string]NodeClient),
-		eventObserver:EventObserver{make(map[string]Observer)},
+		eventObserver:NewEventObserver(),
 	}
 
 	// Launch task consumer

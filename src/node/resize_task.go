@@ -18,7 +18,7 @@ type ResizeTask struct {
 
 func (tm TasksManager)NewResizeTask(from,to string,width,height uint)ResizeTask{
 	return ResizeTask{info:NewInfo(tm.seq.Next(),ResizeTaskType),
-		from:from,to:to,
+		from:filepath.Clean(from),to:filepath.Clean(to),
 		width:width,height:height}
 }
 

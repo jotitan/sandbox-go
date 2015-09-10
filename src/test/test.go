@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sync"
+	"regexp"
 )
 
 
@@ -102,7 +103,12 @@ func getMarker(bloc,data []byte)Marker{
 
 
 func main(){
-	run()
+	//run()
+	value := "titi/tata\\bla\\blu/lkj"
+	r,e := regexp.Compile("(/|\\\\)")
+	fmt.Println(e)
+	value2 := r.ReplaceAllString(value,string(os.PathSeparator)+":")
+	fmt.Println(value,value2)
 }
 
 func create(){

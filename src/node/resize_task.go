@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"logger"
+	"regexp"
+	"os"
 )
 
 type ResizeTask struct {
@@ -16,9 +18,14 @@ type ResizeTask struct {
 	height uint
 }
 
+func cleanPath(value string)string{
+	r,_ := regexp.Compile("(/|\\\\)")
+	return r.ReplaceAllString(value,string(os.PathSeparator)+":")
+}
+
 func (tm TasksManager)NewResizeTask(from,to string,width,height uint)ResizeTask{
 	return ResizeTask{info:NewInfo(tm.seq.Next(),ResizeTaskType),
-		from:filepath.Clean(from),to:filepath.Clean(to),
+		from:cleanPath(from),to:cleanPath(to),
 		width:width,height:height}
 }
 

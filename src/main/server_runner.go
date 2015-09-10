@@ -13,6 +13,7 @@ import (
 	"time"
 	"bufio"
 	"io"
+	"path/filepath"
 )
 
 /* Launch a server to treat resize image */
@@ -274,6 +275,10 @@ func main(){
 	baseIP := args["baseIP"]
 	rangeIP := make([]int,0,2)
 	rangePort := make([]int,0,2)
+
+	if logFolder, ok := args["log"] ; ok {
+		logger.InitLogger(filepath.Join(logFolder, "tasker_"+port+".log"), true)
+	}
 
 	if port,err := strconv.ParseInt(args["ipMin"],10,0) ; err == nil {
 		rangeIP = append(rangeIP,int(port))

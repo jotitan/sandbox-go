@@ -20,7 +20,7 @@ type ResizeTask struct {
 
 func cleanPath(value string)string{
 	r,_ := regexp.Compile("(/|\\\\)")
-	return r.ReplaceAllString(value,string(os.PathSeparator)+":")
+	return r.ReplaceAllString(value,string(os.PathSeparator))
 }
 
 func (tm TasksManager)NewResizeTask(from,to string,width,height uint)ResizeTask{

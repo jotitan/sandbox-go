@@ -73,8 +73,13 @@ func (tm * TasksManager)BuildTask(typeTask string,values map[string][]string,for
 			}
 			return "",errors.New("Impossible to get parameters")
 		case ResizeTaskType :
-			width, _ := strconv.ParseInt(values["width"][0], 10, 0)
-			height, _ := strconv.ParseInt(values["height"][0], 10, 0)
+			width,height := 0,0
+		    if strWidth, ok := values["width"] ; ok {
+				width, _ = strconv.ParseInt(strWidth[0], 10, 0)
+			}
+			if strHeight, ok := values["height"] ; ok {
+				height, _ = strconv.ParseInt(strHeight[0], 10, 0)
+			}
 			from := values["from"][0]
 			to := values["to"][0]
 			return tm.AddTask(tm.NewResizeTask(from, to, uint(width), uint(height)),force),nil

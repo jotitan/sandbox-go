@@ -73,7 +73,7 @@ func (tm * TasksManager)BuildTask(typeTask string,values map[string][]string,for
 			}
 			return "",errors.New("Impossible to get parameters")
 		case ResizeTaskType :
-			width,height := 0,0
+			width,height := int64(0),int64(0)
 		    if strWidth, ok := values["width"] ; ok {
 				width, _ = strconv.ParseInt(strWidth[0], 10, 0)
 			}

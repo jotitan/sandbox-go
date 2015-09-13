@@ -285,6 +285,9 @@ func (tm TasksManager)GetAllInfoTasks()[]Info{
 
 // GetStatusTask return the status of the task. Real id is after the last :, before it's the server address
 func (tm TasksManager)GetStatusTask(id string)int8{
+	if !strings.Contains(id,":") {
+		return StatusError
+	}
 	urlNode := id[:strings.LastIndex(id,":")]
 	// case of local task
 	if tm.url == urlNode {
@@ -410,7 +413,7 @@ func (tm * TasksManager)AddTask(task Task,force bool)string{
 	// Search an other one
 	if !force {
 		logger.GetLogger().Info("LOAD",tm.GetLoad(),task.GetInfo().Id)
-		if load := tm.GetLoad() ; load > 1 {
+		if load := tm.GetLoad() ; load >= 1 {
 			if node, notFound := tm.findQuiteNode(load) ; notFound == nil {
 				// Add task to this node, quiter, and return distant id
 				if id,err := node.SendTask(task) ; err == nil {

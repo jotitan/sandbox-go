@@ -60,6 +60,7 @@ func ResizeMany(from, to string, width,height uint){
 
 type Resizer interface{
     Resize(from,to string,width,height uint)error
+    ToString()string
 }
 
 // GetResizer return a resizer acoording to context
@@ -76,6 +77,10 @@ func GetResizer()Resizer{
 // ImageMagickResizer use image magick (convert command) to compress
 type ImageMagickResizer struct{}
 
+func (gor ImageMagickResizer)ToString()string{
+    return "ImageMagick"
+}
+
 func (gor ImageMagickResizer)Resize(from,to string,width,height uint)error{
     cmd := exec.Command("convert",from,"-resize",fmt.Sprintf("'x%d'",height),"-auto-orient","-interpolate","bicubic","-quality","80",to)
     cmd.Output()
@@ -84,6 +89,10 @@ func (gor ImageMagickResizer)Resize(from,to string,width,height uint)error{
 }
 
 type GoResizer struct{}
+
+func (gor GoResizer)ToString()string{
+    return "Go Resizer"
+}
 
 func (gor GoResizer)Resize(from,to string,width,height uint)error{
     //begin := time.Now()

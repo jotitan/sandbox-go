@@ -13,8 +13,8 @@ import (
 var resizer resize.Resizer
 
 func init(){
-	fmt.Println("Init resizer")
 	resizer = resize.GetResizer()
+	fmt.Println("Init resizer",resizer.ToString())
 }
 
 type ResizeTask struct {

@@ -82,10 +82,10 @@ func (gor ImageMagickResizer)ToString()string{
 }
 
 func (gor ImageMagickResizer)Resize(from,to string,width,height uint)error{
-    cmd := exec.Command("convert",from,"-resize",fmt.Sprintf("'x%d'",height),"-auto-orient","-interpolate","bicubic","-quality","80",to)
-    cmd.Output()
+    cmd := exec.Command("convert",from,"-resize",fmt.Sprintf("x%d",height),"-auto-orient","-interpolate","bicubic","-quality","80",to)
+    _,err := cmd.Output()
 
-    return nil
+    return err
 }
 
 type GoResizer struct{}

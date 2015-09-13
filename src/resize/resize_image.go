@@ -9,6 +9,7 @@ import (
     "strings"
     "path/filepath"
     "fmt"
+    "os/exec"
 )
 
 type Request struct {
@@ -39,12 +40,13 @@ func GetPhotosToTreat(from,to string)[]Request{
 func ResizeMany(from, to string, width,height uint){
     counter := sync.WaitGroup{}
     begin := time.Now()
+    gor := GetResizer()
 
     requests := GetPhotosToTreat(from,to)
     for _,r := range requests {
         counter.Add(1)
         go func(req Request) {
-            if err := Resize(req.from, req.to, width,height); err == nil {
+            if err := gor.Resize(req.from, req.to, width,height); err == nil {
                 fmt.Println("Img resized", req.to)
             }else {
                 fmt.Println("Impossible",err)
@@ -56,7 +58,34 @@ func ResizeMany(from, to string, width,height uint){
     fmt.Println("Done",time.Now().Sub(begin))
 }
 
-func Resize(from,to string,width,height uint)error{
+type Resizer interface{
+    Resize(from,to string,width,height uint)error
+}
+
+// GetResizer return a resizer acoording to context
+func GetResizer()Resizer{
+    // CHeck if convert (imagemagick) is present
+    if result,err := exec.Command("convert","-version") .Output() ; err == nil {
+        if strings.Contains(string(result),"ImageMagick") {
+            return ImageMagickResizer{}
+        }
+    }
+    return GoResizer{}
+}
+
+// ImageMagickResizer use image magick (convert command) to compress
+type ImageMagickResizer struct{}
+
+func (gor ImageMagickResizer)Resize(from,to string,width,height uint)error{
+    cmd := exec.Command("convert",from,"-resize",fmt.Sprintf("'x%d'",height),"-auto-orient","-interpolate","bicubic","-quality","80",to)
+    cmd.Output()
+
+    return nil
+}
+
+type GoResizer struct{}
+
+func (gor GoResizer)Resize(from,to string,width,height uint)error{
     //begin := time.Now()
     if img,err := openImage(from) ; err == nil {
         //fmt.Println("Time read",time.Now().Sub(begin))

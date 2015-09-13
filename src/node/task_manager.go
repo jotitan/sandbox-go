@@ -322,6 +322,9 @@ func (tm * TasksManager) DiscoverNetwork(baseIP string, rangePort []int, rangeIP
 
 // GetNodes return connected nodes (not the local)
 func (tm TasksManager)GetNodes()[]string{
+	if len(tm.nodes) <=1 {
+		return []string{}
+	}
 	nodes := make([]string,0,len(tm.nodes)-1)
 	for url,_ := range tm.nodes {
 		if url != tm.url {

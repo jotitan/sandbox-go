@@ -10,6 +10,13 @@ import (
 	"os"
 )
 
+var resizer resize.Resizer
+
+func init(){
+	fmt.Println("Init resizer")
+	resizer = resize.GetResizer()
+}
+
 type ResizeTask struct {
 	info *Info
 	from string
@@ -31,7 +38,7 @@ func (tm TasksManager)NewResizeTask(from,to string,width,height uint)ResizeTask{
 
 func (task ResizeTask)Start(folder string)Task{
 	task.info.StartTime = time.Now()
-	if err := resize.Resize(filepath.Join(folder,task.from), filepath.Join(folder,task.to), task.width,task.height) ; err == nil {
+	if err := resizer.Resize(filepath.Join(folder,task.from), filepath.Join(folder,task.to), task.width,task.height) ; err == nil {
 		task.info.Status = StatusDone
 	}else{
 		logger.GetLogger().Error(err,folder)

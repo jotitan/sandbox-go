@@ -239,8 +239,10 @@ func createServer(port string,baseIP string,rangeIP []int,rangePort []int,nbTask
 
 	if baseIP != "" && len(rangePort) == 2 && len(rangeIP) == 2 {
 	    logger.GetLogger().Info("Discover network",baseIP,rangeIP,rangePort)
-		tasksManager.DiscoverNetwork(baseIP, rangePort, rangeIP)
-		tasksManager.Info()
+		go func() {
+			tasksManager.DiscoverNetwork(baseIP, rangePort, rangeIP)
+			tasksManager.Info()
+		}()
 	}
 
     mux := createRoutes()

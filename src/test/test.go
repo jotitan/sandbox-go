@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sync"
-	"regexp"
+	"music"
 )
 
 
@@ -101,14 +101,10 @@ func getMarker(bloc,data []byte)Marker{
 	return Marker{marker,typeMarker,length,formatData}
 }
 
-
 func main(){
 	//run()
-	value := "titi/tata\\bla\\blu/lkj"
-	r,e := regexp.Compile("(/|\\\\)")
-	fmt.Println(e)
-	value2 := r.ReplaceAllString(value,string(os.PathSeparator)+":")
-	fmt.Println(value,value2)
+	folder := "Y:\\MUSIQUE\\Alicia Keys"
+	music.Browse(folder)
 }
 
 func create(){
@@ -217,3 +213,4 @@ func treat(path string){
 	line,_,_ = buf.ReadLine()
 	fmt.Println("==>",string(line),"\n\n")
 }
+

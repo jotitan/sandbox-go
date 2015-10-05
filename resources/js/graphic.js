@@ -214,3 +214,29 @@ function DynamicGraphic(datasManager,frequency,title,unit,div,type){
     }
     this.init();
 }
+
+/* Display cluster memory status in footer */
+var BarManager = {
+    data:[],
+    bar:null,
+    titleBloc:null,
+    nbByGraph:50,
+    formater:null,
+    init:function(id,formater){
+         this.bar = $('#' + id).peity("line",{width:100,height:20})
+         this.titleBloc = $('#' + id).next()
+         this.formater = formater;
+    },
+    update:function(value){
+        if(this.bar == null){return;}
+        if(this.data.length > this.nbByGraph){
+            this.data.shift();
+        }
+        this.data.push(value)
+        this.bar.text(this.data.join(",")).change()
+        if(this.formater != null){
+            value = this.formater(value)
+        }
+        this.titleBloc.attr('title',value)
+    }
+}

@@ -10,8 +10,6 @@ function initClusterStatus(){
     MiniStatusViewer.init("idMiniStatus")
 
     loadStats();
-    //loadClusterdata()
-    //autoRefresh(FREQUENCE_REFRESH)
 
     // To toogle menu when click on button
     $('.dropdown-menu > li').bind('click',function(){$('.collapse').collapse('hide')})
@@ -23,22 +21,6 @@ function initClusterStatus(){
         new Timer($(this))
     })
 }
-
-/*function autoRefresh(frq){
-    setInterval(function(){
-        loadClusterdata()
-    },frq)
-}
-
-function loadLightCluster(){
-  $.ajax({
-      url:'/cluster',
-      dataType:'json',
-      success:function(data){
-          showLightCluster(data)
-      }
-  })
-} */
 
 function showLightCluster(data){
     $('.light_node').removeData('update')
@@ -84,24 +66,6 @@ function loadStats(){
     },false)
 }
 
-/*function loadClusterdata(){
-    $.ajax({
-        url:'/allStats',
-        dataType:'json',
-        success:function(data){
-            disconnectTime = null
-            $('.node').removeClass('disconnect')
-            $('#idInfoCluster').html('')
-            showCluster(data)
-        },error:function(){
-            disconnectTime = disconnectTime || new Date()
-            delta = Math.round((new Date(new Date().getTime() - disconnectTime.getTime()))/1000)
-            $('#idInfoCluster').html('Off since ' + delta + ' s')
-            $('.node').addClass('disconnect')
-        }
-    })
-} */
-
 /* Display cluster info */
 function showCluster(data){
     $('.node').removeData('update')
@@ -124,32 +88,6 @@ function showCluster(data){
     MiniStatusViewer.refresh()
     $('#idTotalBar').removeClass().addClass("progress-bar progress-bar-success");
     $('.node:not(:data(update)):visible').remove()
-}
-
-/* Display cluster memory status in footer */
-var BarManager = {
-    data:[],
-    bar:null,
-    titleBloc:null,
-    nbByGraph:50,
-    formater:null,
-    init:function(id,formater){
-         this.bar = $('#' + id).peity("line",{width:100,height:20})
-         this.titleBloc = $('#' + id).next()
-         this.formater = formater;
-    },
-    update:function(value){
-        if(this.bar == null){return;}
-        if(this.data.length > this.nbByGraph){
-            this.data.shift();
-        }
-        this.data.push(value)
-        this.bar.text(this.data.join(",")).change()
-        if(this.formater != null){
-            value = this.formater(value)
-        }
-        this.titleBloc.attr('title',value)
-    }
 }
 
 function statusCluster(nbUp,nbTotal,replica){

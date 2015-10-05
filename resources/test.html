@@ -1,0 +1,46 @@
+<html>
+
+<head>
+    <script src="vendors/jquery/jquery-2.1.3.min.js"></script>
+    <script src="vendors/jquery/jquery-ui.min.js"></script>
+    <script src="vendors/punch/jquery.ui.touch-punch.min.js"></script>
+    <link rel="stylesheet" href="vendors/jquery/jquery-ui.min.css"/>
+    <link rel="stylesheet" href="vendors/bootstrap/css/bootstrap.min.css">
+</head>
+<body>
+
+Bla
+
+<style>
+    span.titi {
+        display:inline-block;
+        width:100px;
+        height:30px;
+        border:solid 1px black;
+        background-color:yellow;
+    }
+
+</style>
+
+<div id="first" style="background-color:orange;width:400px;height:200px;overflow:auto">
+    <span class="titi">Art 1</span>
+    <span class="titi">Art 2</span>
+    <span class="titi">Art 3</span>
+    <span class="titi">Art 4</span>
+    <span class="titi">Art 5</span>
+    <span class="titi">Art 6</span>
+</div>
+
+<div style="background-color:pink;width:400px;height:200px">
+
+</div>
+
+<script>
+    //$('#first').draggable()
+    $('#first').resizable()
+    $('#first > span').draggable({revert:true,helper:'clone',appendTo: 'body'})
+
+</script>
+
+</body>
+</html>

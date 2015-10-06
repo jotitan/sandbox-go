@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"sync"
 	"music"
+	"logger"
 )
 
 
@@ -103,8 +104,13 @@ func getMarker(bloc,data []byte)Marker{
 
 func main(){
 	//run()
-	folder := "Y:\\MUSIQUE\\Alicia Keys"
+	//folder := "Y:\\MUSIQUE\\Alicia Keys"
+
+
+
+	folder := "C:\\tmp\\zik"
 	music.Browse(folder)
+	logger.GetLogger().Info(music.MusicDictionnary{}.GetMusicFromId(11))
 }
 
 func create(){

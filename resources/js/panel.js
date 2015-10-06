@@ -127,6 +127,12 @@ var WindowsNavManager = {
     div:null,
     init:function(id){
         this.div = $('#' + id)
+        $('ul',this.div).sortable({
+            cancel:false,
+            axis:"x",
+            distance:10,
+            helper:'clone'
+        });
     },
     // Panel contain variable name, method hide, show and isVisible
     add:function(panel){
@@ -136,11 +142,13 @@ var WindowsNavManager = {
         button.bind('click',function(){
             WindowsNavManager.doAction($(this).data("panel"))
         })
-        this.div.append(button)
+        //this.div.append(button)
+         $('ul',this.div).append(button.wrap("<li></li>"))
         this.setActive(panel)
     },
     remove:function(panel){
-        this.div.find('button[data-inner-id="' + panel.id + '"]').remove()
+        this.div.find('button[data-inner-id="' + panel.id + '"]').parent().remove()
+        //this.div.find('button[data-inner-id="' + panel.id + '"]').remove()
     },
     setActive:function(panel){
         $('button.task-button',this.div).removeClass('selected');
@@ -154,8 +162,15 @@ var WindowsNavManager = {
         }
         var button = this.div.find('button[data-inner-id="' + panel.id + '"]')
         if(panel.isVisible()){
-            panel.hide();
-            button.removeClass('active').addClass('inactive')
+            //panel.hide();
+            //button.removeClass('active').addClass('inactive')
+            // If not active, set active instead
+            if(button.hasClass('selected')){
+                panel.hide();
+                button.removeClass('active').addClass('inactive')
+            }else{
+                this.setActive(panel);
+            }
         }else{
             this.setActive(panel);
             panel.show();

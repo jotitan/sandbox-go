@@ -405,3 +405,11 @@ label > [type="checkbox"] {
 span.glyphicon.icon {
     padding-right:5px;
 }
+
+ul.taskbar {
+    list-style-type:none;
+}
+
+ul.taskbar > li {
+    display:inline-block;
+}

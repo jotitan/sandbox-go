@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"sync"
 	"music"
-	"logger"
 	"arguments"
 )
 
@@ -106,11 +105,11 @@ func getMarker(bloc,data []byte)Marker{
 func main(){
 	//run()
 
-
 	args := arguments.ParseArgs()
-
 	music.Browse(args["workingFolder"],args["workingFolder"])
-	logger.GetLogger().Info(music.NewDictionnary(args["workingFolder"]).GetMusicFromId(11))
+
+
+
 }
 
 func create(){

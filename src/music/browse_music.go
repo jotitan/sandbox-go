@@ -27,6 +27,7 @@ func Browse(folderName string,workingFolder string){
 
 	dictionnary.browseFolder(folderName)
 	dictionnary.Save()
+	dictionnary.artistIndex.Save(folderName)
 }
 
 func (md * MusicDictionnary)browseFolder(folderName string){
@@ -49,7 +50,6 @@ func (md * MusicDictionnary)browseFolder(folderName string){
 	}
 }
 
-
 type MusicDictionnary struct{
     previousSize int
     // Data in json format
@@ -64,6 +64,8 @@ type MusicDictionnary struct{
 	nextId int64
     // Directory where indexes are
     indexFolder string
+	// Artist index
+	artistIndex ArtistIndex
 }
 
 func (md MusicDictionnary)currentSize()int{
@@ -88,7 +90,6 @@ func (m Music)toJSON()[]byte{
 	jsonData,_ := json.Marshal(data)
 	return jsonData
 }
-
 
 // return err
 func (md MusicDictionnary)findLastFile()(int64,error){
@@ -197,8 +198,10 @@ func (md * MusicDictionnary)Add(music id3.File){
     }
     md.musics = append(md.musics,Music{music,md.nextId})
 	md.nextId++
+	md.artistIndex.Add(music.Artist)
 }
 
+// GetMusicFromId return the music to an id
 func (md MusicDictionnary)GetMusicFromId(id int)map[string]string{
 	fileId := id / limitMusicFile
 
@@ -227,6 +230,7 @@ func NewDictionnary(workingDirectory string)MusicDictionnary {
 func LoadDictionnary(workingDirectory string)MusicDictionnary{
     md := MusicDictionnary{changeFolder:false,indexFolder:workingDirectory}
 
+	// Load music info
     fileId,notExist := md.findLastFile()
 	if notExist == nil{
 		// Load the last file and get current element inside
@@ -242,7 +246,9 @@ func LoadDictionnary(workingDirectory string)MusicDictionnary{
         md.musics = make([]Music,0,limitMusicFile)
 		md.nextId = 1
     }
-    //
+
+    // Load artist index (list of artist, list of music by artist)
+	md.artistIndex = LoadArtistIndex(workingDirectory)
     return md
 }
 

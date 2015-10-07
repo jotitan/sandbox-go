@@ -22,6 +22,17 @@ func getInt64AsByte(n int64) []byte {
 	}
 }
 
+// GetInt32AsByte return a byte array representation of int32
+func getInt32AsByte(n int32) []byte {
+	return []byte{byte(n), byte(n >> 8), byte(n >> 16), byte(n >> 24)}
+}
+
+
+// GetInt16AsByte return a byte array representation of int16
+func getInt16AsByte(n int16) []byte {
+	return []byte{byte(n), byte(n >> 8)}
+}
+
 func getInt64FromFile(f *os.File,pos int64)int64{
 	tab := make([]byte,8)
 	f.ReadAt(tab,pos)

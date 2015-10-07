@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"os"
 	"encoding/json"
+	"music"
 )
 
 /* Launch a server to treat resize image */
@@ -21,7 +22,9 @@ type SSEWriter struct{
 	f http.Flusher
 }
 
-type MusicServer struct{}
+type MusicServer struct{
+	folder string
+}
 
 func (sse SSEWriter)Write(message string){
 	sse.w.Write([]byte("data: " + message + "\n\n"))
@@ -53,12 +56,13 @@ func (ms MusicServer)statsAsSSE(response http.ResponseWriter, request *http.Requ
 }
 
 func (ms MusicServer)listByArtist(response http.ResponseWriter, request *http.Request){
-	// MOCK
-	data := make(map[string]string)
-	for i := 0 ; i < 20 ; i++{
-		data[fmt.Sprintf("Artist %d",i)] = fmt.Sprintf("%d",i)
-	}
-	bdata,_ := json.Marshal(data)
+	logger.GetLogger().Info("Get all artists")
+	artists := music.LoadArtistIndex(ms.folder).FindAll()
+	//artists := make(map[string]string)
+	/*for i := 0 ; i < 20 ; i++{
+		artists[fmt.Sprintf("Artist %d",i)] = fmt.Sprintf("%d",i)
+	} */
+	bdata,_ := json.Marshal(artists)
 	response.Write(bdata)
 }
 
@@ -77,20 +81,20 @@ func (ms MusicServer)musicInfo(response http.ResponseWriter, request *http.Reque
 }
 
 // Return music content
+// TODO MOCK
 func (ms MusicServer)music(response http.ResponseWriter, request *http.Request){
 	id := request.FormValue("id")
 	logger.GetLogger().Info("Get music id",id)
-	// MOCK
 	mockPath := ""
 	switch id {
 		case "3" : mockPath = "D:\\TORRENT\\Lenny Kravitz\\01.Are you gonna go my way.mp3"
 		default : mockPath = "D:\\TORRENT\\Lenny Kravitz\\12.I belong to you.mp3"
 	}
-	music,_ := os.Open(mockPath)
-	info,_ := music.Stat()
+	m,_ := os.Open(mockPath)
+	info,_ := m.Stat()
 	response.Header().Set("Content-type","audio/mpeg")
 	response.Header().Set("Content-Length",fmt.Sprintf("%d",info.Size()))
-	io.Copy(response,music)
+	io.Copy(response,m)
 }
 
 
@@ -128,6 +132,7 @@ func (ms MusicServer)findExposedURL()string{
 }
 
 func (ms MusicServer)create(port string,folder string){
+	ms.folder = folder
 	if port == ""{
 		logger.GetLogger().Fatal("Impossible to run node, port is not defined")
 	}
@@ -159,7 +164,7 @@ func main(){
 	port := args["port"]
 
 	if logFolder, ok := args["log"] ; ok {
-		logger.InitLogger(filepath.Join(logFolder, "tasker_"+port+".log"), true)
+		logger.InitLogger(filepath.Join(logFolder, "music_"+port+".log"), true)
 	}
 
 	ms := MusicServer{}

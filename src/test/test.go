@@ -10,6 +10,7 @@ import (
 	"sync"
 	"music"
 	"logger"
+	"arguments"
 )
 
 
@@ -104,13 +105,12 @@ func getMarker(bloc,data []byte)Marker{
 
 func main(){
 	//run()
-	//folder := "Y:\\MUSIQUE\\Alicia Keys"
 
 
+	args := arguments.ParseArgs()
 
-	folder := "C:\\tmp\\zik"
-	music.Browse(folder)
-	logger.GetLogger().Info(music.MusicDictionnary{}.GetMusicFromId(11))
+	music.Browse(args["workingFolder"],args["workingFolder"])
+	logger.GetLogger().Info(music.NewDictionnary(args["workingFolder"]).GetMusicFromId(11))
 }
 
 func create(){

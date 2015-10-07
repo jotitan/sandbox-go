@@ -17,16 +17,14 @@ import (
 /* Give methods to browse musics in a specific directory */
 
 
-//var folder = "D:\\Documents\\Projets\\data"
-var folder = "C:\\tmp\\zik"
-
 const (
 	limitMusicFile = 10
 )
 
 // Browse a folder to get all data
-func Browse(folderName string){
-    dictionnary := LoadDictionnary()
+func Browse(folderName string,workingFolder string){
+    dictionnary := LoadDictionnary(workingFolder)
+
 	dictionnary.browseFolder(folderName)
 	dictionnary.Save()
 }
@@ -64,6 +62,8 @@ type MusicDictionnary struct{
 	changeFolder bool
 	// Next id for file
 	nextId int64
+    // Directory where indexes are
+    indexFolder string
 }
 
 func (md MusicDictionnary)currentSize()int{
@@ -95,7 +95,7 @@ func (md MusicDictionnary)findLastFile()(int64,error){
 	pattern := "music_([0-9]+).dico"
 	r,_ := regexp.Compile(pattern)
 	max := int64(-1)
-	filesFolder,_ := os.Open(folder)
+	filesFolder,_ := os.Open(md.indexFolder)
 	names,_ := filesFolder.Readdirnames(-1)
 	for _,name := range names {
 		if result := r.FindStringSubmatch(name) ; len(result) >1 {
@@ -120,7 +120,7 @@ func (md * MusicDictionnary)Save(){
 		fileId++
 		md.changeFolder = false
 	}
-	path := filepath.Join(folder,fmt.Sprintf("music_%d.dico",fileId))
+	path := filepath.Join(md.indexFolder,fmt.Sprintf("music_%d.dico",fileId))
 	logger.GetLogger().Info("Save in file",path)
     f,err := os.OpenFile(path,os.O_CREATE|os.O_RDWR|os.O_EXCL,os.ModePerm)
     // If exist, just append result at the end
@@ -202,7 +202,7 @@ func (md * MusicDictionnary)Add(music id3.File){
 func (md MusicDictionnary)GetMusicFromId(id int)map[string]string{
 	fileId := id / limitMusicFile
 
-	path := filepath.Join(folder,fmt.Sprintf("music_%d.dico",fileId))
+	path := filepath.Join(md.indexFolder,fmt.Sprintf("music_%d.dico",fileId))
 	if f,err := os.Open(path) ; err == nil {
 		defer f.Close()
 		pos := int64(id - fileId*limitMusicFile)*8
@@ -219,14 +219,18 @@ func (md MusicDictionnary)GetMusicFromId(id int)map[string]string{
 	return nil
 }
 
+func NewDictionnary(workingDirectory string)MusicDictionnary {
+    return MusicDictionnary{changeFolder:false, indexFolder:workingDirectory}
+}
+
 // LoadDictionnary load the dictionnary which store music info by id
-func LoadDictionnary()MusicDictionnary{
-    md := MusicDictionnary{changeFolder:false}
+func LoadDictionnary(workingDirectory string)MusicDictionnary{
+    md := MusicDictionnary{changeFolder:false,indexFolder:workingDirectory}
 
     fileId,notExist := md.findLastFile()
 	if notExist == nil{
 		// Load the last file and get current element inside
-		path := filepath.Join(folder,fmt.Sprintf("music_%d.dico",fileId))
+		path := filepath.Join(md.indexFolder,fmt.Sprintf("music_%d.dico",fileId))
 		f,_ := os.Open(path)
 		defer f.Close()
 		tabNb := make([]byte,8)

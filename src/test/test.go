@@ -10,6 +10,7 @@ import (
 	"sync"
 	"music"
 	"arguments"
+	"logger"
 )
 
 
@@ -105,8 +106,37 @@ func getMarker(bloc,data []byte)Marker{
 func main(){
 	//run()
 
+	logger.GetLogger().Info(7/4)
+
+	return
+
+	// Recreate albums index at each time (very quick)
 	args := arguments.ParseArgs()
-	music.Browse(args["workingFolder"],args["workingFolder"])
+	artists := music.LoadArtistIndex(args["workingFolder"])
+	dico := music.LoadDictionnary(args["workingFolder"])
+	artistsIdx := music.LoadArtistMusicIndex(args["workingFolder"])
+	nb,nbA := 0,0
+	for artist, id := range  artists.FindAll() {
+		musicsIds := artistsIdx.MusicsByArtist[id]
+		// Load all tracks and group by album
+		albums  := make(map[string][]int)
+		musics := dico.GetMusicsFromIds(musicsIds)
+		nb+=len(musics)
+		for i,music := range musics  {
+			if ids,ok := albums[music["album"]] ; ok {
+				albums[music["album"]] = append(ids,musicsIds[i])
+			}else{
+				albums[music["album"]] = []int{musicsIds[i]}
+			}
+		}
+		nbA+=len(albums)
+		logger.GetLogger().Info("=>",artist,len(musics),len(albums),albums)
+	}
+	logger.GetLogger().Info(nb,nbA)
+	return
+
+	//dico := music.LoadDictionnary(args["workingFolder"])
+	dico.Browse(args["browse"])
 
 
 

@@ -13,6 +13,8 @@ import (
 	"os"
 	"encoding/json"
 	"music"
+	"strconv"
+	"sort"
 )
 
 /* Launch a server to treat resize image */
@@ -24,6 +26,7 @@ type SSEWriter struct{
 
 type MusicServer struct{
 	folder string
+	dico music.MusicDictionnary
 }
 
 func (sse SSEWriter)Write(message string){
@@ -55,15 +58,37 @@ func (ms MusicServer)statsAsSSE(response http.ResponseWriter, request *http.Requ
 	ms.sendStats(response)
 }
 
+type sortByArtist []map[string]string
+
+func (a sortByArtist)Len() int{return len(a)}
+func (a sortByArtist)Less(i, j int) bool{return a[i]["name"] < a[j]["name"]}
+func (a sortByArtist)Swap(i, j int) {a[i],a[j] = a[j],a[i]}
+
 func (ms MusicServer)listByArtist(response http.ResponseWriter, request *http.Request){
-	logger.GetLogger().Info("Get all artists")
-	artists := music.LoadArtistIndex(ms.folder).FindAll()
-	//artists := make(map[string]string)
-	/*for i := 0 ; i < 20 ; i++{
-		artists[fmt.Sprintf("Artist %d",i)] = fmt.Sprintf("%d",i)
-	} */
-	bdata,_ := json.Marshal(artists)
-	response.Write(bdata)
+	if id := request.FormValue("id") ; id == "" {
+		logger.GetLogger().Info("Get all artists")
+		// Response with nampe and url
+		artists := music.LoadArtistIndex(ms.folder).FindAll()
+		artistsData := make([]map[string]string,0,len(artists))
+		for artist,id := range artists{
+			artistsData = append(artistsData,map[string]string{"name":artist,"url":fmt.Sprintf("id=%d",id)})
+		}
+		sort.Sort(sortByArtist(artistsData))
+		bdata,_ := json.Marshal(artistsData)
+		response.Write(bdata)
+	}else{
+		logger.GetLogger().Info("Load music of artist",id)
+		artistId,_ := strconv.ParseInt(id,10,32)
+		musicsIds := music.LoadArtistMusicIndex(ms.folder).MusicsByArtist[int(artistId)]
+		musics := make([]map[string]string,len(musicsIds))
+		for i,musicId := range musicsIds{
+			m := ms.dico.GetMusicFromId(musicId)
+			delete(m,"path")	// Cause no need to return
+			musics[i] = map[string]string{"name":m["title"],"info":m["length"],"id":fmt.Sprintf("%d",musicId)}
+		}
+		data,_:= json.Marshal(musics)
+		response.Write(data)
+	}
 }
 
 func (ms MusicServer)listByAlbum(response http.ResponseWriter, request *http.Request){
@@ -73,24 +98,28 @@ func (ms MusicServer)listByAlbum(response http.ResponseWriter, request *http.Req
 
 // Return info about music
 func (ms MusicServer)musicInfo(response http.ResponseWriter, request *http.Request){
-	id := request.FormValue("id")
-	logger.GetLogger().Info("=>",id,"BLA")
-	data := map[string]string{"id":id,"src":"music?id=" + id,"title":"Title " + id,"time":"0"}
-	bdata,_ := json.Marshal(data)
+	id,_ := strconv.ParseInt(request.FormValue("id"),10,32)
+	logger.GetLogger().Info("Load music info with id",id)
+	music := ms.dico.GetMusicFromId(int(id))
+	delete(music,"path")
+	music["src"] = fmt.Sprintf("music?id=%d",id)
+	bdata,_ := json.Marshal(music)
 	response.Write(bdata)
+}
+
+func (ms MusicServer)browse(response http.ResponseWriter, request *http.Request){
+	folder := request.FormValue("folder")
+	ms.dico.Browse(folder)
 }
 
 // Return music content
 // TODO MOCK
 func (ms MusicServer)music(response http.ResponseWriter, request *http.Request){
-	id := request.FormValue("id")
+	id,_ := strconv.ParseInt(request.FormValue("id"),10,32)
 	logger.GetLogger().Info("Get music id",id)
-	mockPath := ""
-	switch id {
-		case "3" : mockPath = "D:\\TORRENT\\Lenny Kravitz\\01.Are you gonna go my way.mp3"
-		default : mockPath = "D:\\TORRENT\\Lenny Kravitz\\12.I belong to you.mp3"
-	}
-	m,_ := os.Open(mockPath)
+	music := ms.dico.GetMusicFromId(int(id))
+
+	m,_ := os.Open(music["path"])
 	info,_ := m.Stat()
 	response.Header().Set("Content-type","audio/mpeg")
 	response.Header().Set("Content-Length",fmt.Sprintf("%d",info.Size()))
@@ -133,6 +162,7 @@ func (ms MusicServer)findExposedURL()string{
 
 func (ms MusicServer)create(port string,folder string){
 	ms.folder = folder
+	ms.dico = music.LoadDictionnary(ms.folder)
 	if port == ""{
 		logger.GetLogger().Fatal("Impossible to run node, port is not defined")
 	}
@@ -154,6 +184,7 @@ func (ms MusicServer)createRoutes()*http.ServeMux{
 	mux.HandleFunc("/musicInfo",ms.musicInfo)
 	mux.HandleFunc("/listByArtist",ms.listByArtist)
 	mux.HandleFunc("/listByAlbum",ms.listByAlbum)
+	mux.HandleFunc("/browse",ms.browse)
 	mux.HandleFunc("/",ms.root)
 	return mux
 }

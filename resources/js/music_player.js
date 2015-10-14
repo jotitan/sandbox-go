@@ -60,16 +60,20 @@ var MusicPlayer = {
     init:function(){
         this.player = $('#idPlayer').get(0);
         this.controls.init('player')
-        this.player.addEventListener('pause',function(e){
-          clearInterval(MusicPlayer.checkInterval)
-        });
         this.player.addEventListener('canplay',function(e){
             MusicPlayer.checkProgress();
         })
         this.player.addEventListener('error',function(e){
             console.log("Error when loading music")
         });
-
+        this.player.addEventListener('timeupdate',function(e){
+            MusicPlayer.controls.update(MusicPlayer.player.currentTime);
+        });
+        this.player.addEventListener('ended',function(e){
+            if(MusicPlayer.playlist!=null){
+                MusicPlayer.playlist.next();
+            }
+        })
     },
     load:function(music){
         this.player.src = music.src;
@@ -81,20 +85,11 @@ var MusicPlayer = {
         $('.play',this.div).hide();
         $('.pause',this.div).show();
     },
-    checkInterval:null,
+
     // launch after load
     checkProgress:function(){
-        if(this.checkInterval!=null){
-            clearInterval(this.checkInterval)
-        }
         this.controls.setMax(this.player.duration);
         this.controls.update(0);
-        this.player.addEventListener('playing',function(e){
-        this.checkInterval = setInterval(function(){
-            MusicPlayer.controls.update(MusicPlayer.player.currentTime);
-          },500);
-        })
-
     },
     // Format time in second in minutes:secondes
     _formatTime:function(time){

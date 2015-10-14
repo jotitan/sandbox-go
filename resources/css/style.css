@@ -343,7 +343,7 @@ label > [type="checkbox"] {
     height:calc(100% - 105px);
 }
 
-.folders > span {
+.folders.block > span {
     display:inline-block;
     padding:20px 10px 20px 10px;
     margin:5px;
@@ -354,6 +354,24 @@ label > [type="checkbox"] {
     border-radius:5px 5px 15px 15px;
     background-color:lightsteelblue;
     font-size:12px;
+}
+
+.folders.block > span > span.info {
+    display:none;
+}
+
+.folders.line > span {
+    display:inline-block;
+    margin:5px 0px 0px 5px;
+    border-bottom:solid 1px lightgray;
+    width:98%;
+    text-align:left;
+    cursor:pointer;
+    font-size:12px;
+}
+
+.folders.line > span > span.info {
+    float:right
 }
 
 .info-folders {

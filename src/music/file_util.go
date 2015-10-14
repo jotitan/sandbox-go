@@ -27,6 +27,14 @@ func getInt32AsByte(n int32) []byte {
 	return []byte{byte(n), byte(n >> 8), byte(n >> 16), byte(n >> 24)}
 }
 
+func getInts32AsByte(ns []int) []byte {
+	tab := make([]byte,0,4*len(ns))
+	for _,n := range ns {
+		tab = append(tab,getInt32AsByte(int32(n))...)
+	}
+	return tab
+}
+
 
 // GetInt16AsByte return a byte array representation of int16
 func getInt16AsByte(n int16) []byte {

@@ -5,9 +5,11 @@ import (
 	"os"
 	"path/filepath"
 	"encoding/binary"
+	"encoding/gob"
 )
 
 
+// ArtistIndex store all artists (avoid double)
 type ArtistIndex struct{
 	// Used to define if an artist exist (id of artist)
 	artists map[string]int
@@ -19,13 +21,14 @@ type ArtistIndex struct{
 	currentSave int
 }
 
-// Get artist index to search...
+// LoadArtistIndex Get artist index to search...
 func LoadArtistIndex(folder string)ArtistIndex{
 	path := filepath.Join(folder,"artist.dico")
 	f,err := os.Open(path)
 	ai := ArtistIndex{artists:make(map[string]int),currentId:1,artistsToSave:make([]string,0)}
 	if err == nil {
 		io.Copy(&ai,f)
+		f.Close()
 	}
 	return ai
 }
@@ -65,6 +68,7 @@ func (ai * ArtistIndex)Save(folder string){
 	f.Close()
 }
 
+// Read data from artist index
 func (ai * ArtistIndex)Read(p []byte)(int,error){
 	pos := 0
 	for {
@@ -114,3 +118,50 @@ func (ai * ArtistIndex)Write(p []byte)(int,error){
 	}
 	return pSize,nil
 }
+
+// ArtistMusicIndex is an index music by artist. Use id artist and id music.
+// Save with temporary method with gob decode / encode
+// TODO change with ElementsByFather
+type ArtistMusicIndex struct{
+	// map with id artist of key and list of music
+	MusicsByArtist map[int][]int
+}
+
+func (ami * ArtistMusicIndex)Add(artist,music int){
+	if musics,present := ami.MusicsByArtist[artist] ; present {
+		ami.MusicsByArtist[artist] = append(musics,music)
+	}else{
+		ami.MusicsByArtist[artist] = []int{music}
+	}
+}
+
+func (ami * ArtistMusicIndex)Adds(artist int,listMusics []int){
+	if musics,present := ami.MusicsByArtist[artist] ; present {
+		ami.MusicsByArtist[artist] = append(musics,listMusics...)
+	}else{
+		ami.MusicsByArtist[artist] = listMusics
+	}
+}
+
+func (ami ArtistMusicIndex)Save(folder string){
+	path := filepath.Join(folder,"artist_music.index")
+	f,_ := os.OpenFile(path,os.O_TRUNC|os.O_CREATE|os.O_RDWR,os.ModePerm)
+	defer f.Close()
+	enc := gob.NewEncoder(f)
+	enc.Encode(ami)
+}
+
+func LoadArtistMusicIndex(folder string)ArtistMusicIndex{
+	path := filepath.Join(folder,"artist_music.index")
+	ami := ArtistMusicIndex{}
+	if f,err := os.Open(path);err == nil {
+		dec := gob.NewDecoder(f)
+		dec.Decode(&ami)
+		f.Close()
+	}else{
+		ami.MusicsByArtist = make(map[int][]int)
+	}
+	return ami
+}
+
+// Artist store a list of album : idArtist, list album (id,name)

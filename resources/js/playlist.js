@@ -25,7 +25,7 @@ var PlaylistPanel = {
         });
         this.listDiv.droppable({
             drop:function(event,ui){
-                var idMusic = ui.draggable.data('music');
+                var idMusic = ui.draggable.data('id');
                 // Get info from id music
                 PlaylistPanel.addMusicFromId(idMusic);
             }
@@ -42,10 +42,13 @@ var PlaylistPanel = {
             }
         })
     },
+    remove:function(id){
+
+    },
     // Add a new music in list
     add:function(music){
         var position = $('div',this.listDiv).length;
-        var line = $('<div><span>' + position + '</span><span>' + music.title + '</span><span>' + MusicPlayer._formatTime(music.time) + '</span></div>');
+        var line = $('<div><span>' + position + '</span><span>' + music.title + '</span><span>' + MusicPlayer._formatTime(music.length) + '</span></div>');
         line.data("position",position-1);
         line.data("music",music);
         this.listDiv.append(line);

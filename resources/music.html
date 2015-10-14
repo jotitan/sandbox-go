@@ -56,18 +56,18 @@
         <div class="collapse navbar-collapse">
             <ul class="nav navbar-nav">
                 <li class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Nodes <span class="caret"></span></a>
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Options <span class="caret"></span></a>
                     <ul class="dropdown-menu" role="menu">
                         <li><a href="#" onclick="TasksPanel.open()">
                             <span class="glyphicon glyphicon-list-alt"></span>
                             Search...</a>
                         </li>
                         <li><a href="#" onclick="PlaylistPanel.open()">
-                            <span class="glyphicon glyphicon-signal"></span>
+                            <span class="glyphicon glyphicon-music"></span>
                             Playlist...</a>
                         </li>
                         <li><a href="#" onclick="Explorer.byArtist()">
-                            <span class="glyphicon glyphicon-signal"></span>
+                            <span class="glyphicon glyphicon-user"></span>
                             List by artist...</a>
                         </li>
                         <li><a href="#" onclick="Explorer.byAlbum()">
@@ -105,12 +105,17 @@ TODO :
     Enregistre info musique dans un ou plusieurs fichiers (nb limite par fichier). [position (int64) des donnees en json. La position est l'id]
 
     Recherche par titre album artiste...
-    Indexation (parcours d'un repertoire, lecteur id3tag, creation structure)
-    Affichage par artiste (liste avec tous chargé a la demande), par musique (grande liste scrollable), par album
-    Affichage de la playlist
-    Lancement musique html5
+
+    Affichage par musique (grande liste scrollable), par album
+
     Affichage etat de la machine qui a l'application
     Graphique sur statistiques musique
+    Correction bug scroll music
+    Correction bug borne draggable fenetre
+    Option comme repeat, controle du volume
+    Raccourci claver (espace pour play...)
+    Mode Threejs, D3 pour de la visualisation
+    local storage de la musique en cours et de la playlist (pour remettre avant
 </pre>
 
 <style>
@@ -119,7 +124,9 @@ TODO :
     }
 </style>
 
-<audio id="idPlayer"></audio>
+<audio id="idPlayer">
+
+</audio>
 
 
 
@@ -134,10 +141,8 @@ TODO :
                 this.open("/listByAlbum");
             };
             MusicPlayer.init();
-            WindowsNavManager.init();
+            WindowsNavManager.init('idWindowsNav');
             MusicPlayer.setPlaylist(PlaylistPanel);
-            MusicPlayer.playlist.add(new Music(3,"music?id=3","Premier titre"));
-            MusicPlayer.playlist.add(new Music(5,"music?id=5","Second titre"));
         });
     })
 </script>

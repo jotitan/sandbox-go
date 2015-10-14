@@ -12,22 +12,24 @@ import (
 	"fmt"
 	"errors"
 	"os/exec"
+	"time"
 )
 
 /* Give methods to browse musics in a specific directory */
 
 
 const (
-	limitMusicFile = 10
+	limitMusicFile = 1000
 )
 
 // Browse a folder to get all data
-func Browse(folderName string,workingFolder string){
-    dictionnary := LoadDictionnary(workingFolder)
+func (md * MusicDictionnary)Browse(folderName string){
+    dictionnary := LoadDictionnary(md.indexFolder)
 
 	dictionnary.browseFolder(folderName)
 	dictionnary.Save()
-	dictionnary.artistIndex.Save(folderName)
+	dictionnary.artistIndex.Save(md.indexFolder)
+	dictionnary.artistMusicIndex.Save(md.indexFolder)
 }
 
 func (md * MusicDictionnary)browseFolder(folderName string){
@@ -43,10 +45,17 @@ func (md * MusicDictionnary)browseFolder(folderName string){
 			} else{
 				// TODO : check in bloomfilter if exist. If true, final check in dictionnary
 				if strings.HasSuffix(file.Name(),".mp3") {
-					md.Add(*extractInfo(path))
+					logger.GetLogger().Info("Index",path)
+					if info := md.extractInfo(path) ; info != nil {
+						md.Add(path, *info)
+					}else{
+						logger.GetLogger().Error("Impossible to add",path)
+					}
 				}
 			}
 		}
+	} else{
+		logger.GetLogger().Error(err,folderName)
 	}
 }
 
@@ -66,6 +75,7 @@ type MusicDictionnary struct{
     indexFolder string
 	// Artist index
 	artistIndex ArtistIndex
+    artistMusicIndex ArtistMusicIndex
 }
 
 func (md MusicDictionnary)currentSize()int{
@@ -74,6 +84,7 @@ func (md MusicDictionnary)currentSize()int{
 
 type Music struct{
 	file id3.File
+    path string
 	id int64
 }
 
@@ -86,29 +97,33 @@ func (m Music)toJSON()[]byte{
 	data["year"] = m.file.Year
 	data["genre"] = m.file.Genre
 	data["track"] = m.file.Track
-
+    data["path"] = m.path
 	jsonData,_ := json.Marshal(data)
 	return jsonData
 }
 
+// Find id file with biggest id
+func findLastFile(folder,pattern string)(int64,error){
+    r,_ := regexp.Compile(pattern)
+    max := int64(-1)
+    filesFolder,_ := os.Open(folder)
+    names,_ := filesFolder.Readdirnames(-1)
+    for _,name := range names {
+        if result := r.FindStringSubmatch(name) ; len(result) >1 {
+            if id,err := strconv.ParseInt(result[1],10,32) ; err == nil && id > max {
+                max = id
+            }
+        }
+    }
+    if max == -1 {
+        return 0,errors.New("No dictionnary yet")
+    }
+    return max,nil
+}
+
 // return err
 func (md MusicDictionnary)findLastFile()(int64,error){
-	pattern := "music_([0-9]+).dico"
-	r,_ := regexp.Compile(pattern)
-	max := int64(-1)
-	filesFolder,_ := os.Open(md.indexFolder)
-	names,_ := filesFolder.Readdirnames(-1)
-	for _,name := range names {
-		if result := r.FindStringSubmatch(name) ; len(result) >1 {
-			if id,err := strconv.ParseInt(result[1],10,32) ; err == nil && id > max {
-				max = id
-			}
-		}
-	}
-	if max == -1 {
-		return 0,errors.New("No dictionnary yet")
-	}
-	return max,nil
+	return findLastFile(md.indexFolder,"music_([0-9]+).dico")
 }
 
 // Save the file. Header with fix size (fixe number of element, 10000 for example). Header link position of element.
@@ -188,7 +203,7 @@ func (md * MusicDictionnary)Read(tab []byte)(int,error){
 }
 
 // Add music in dictionnary. If file limit is reach, save the file
-func (md * MusicDictionnary)Add(music id3.File){
+func (md * MusicDictionnary)Add(path string,music id3.File){
     if md.currentSize() >= limitMusicFile {
         md.Save()
 		md.changeFolder = true
@@ -196,14 +211,51 @@ func (md * MusicDictionnary)Add(music id3.File){
         md.musics = make([]Music,0,limitMusicFile)
 		md.previousSize = 0
     }
-    md.musics = append(md.musics,Music{music,md.nextId})
-	md.nextId++
-	md.artistIndex.Add(music.Artist)
+    idMusic := md.nextId
+    md.nextId++
+    md.musics = append(md.musics, Music{file:music,id:idMusic,path:path})
+	idArtist := md.artistIndex.Add(music.Artist)
+	md.artistMusicIndex.Add(idArtist,int(idMusic))
+}
+
+// Get many musics by id
+func (md MusicDictionnary)GetMusicsFromIds(ids []int)[]map[string]string{
+	musicResults := make([]map[string]string,0,len(ids))
+	// Group ids by file id
+	groupsIds := make(map[int][]int)
+	for _,id := range ids {
+		fileId := (id-1) / limitMusicFile
+		if group,ok := groupsIds[fileId] ; ok {
+			groupsIds[fileId] = append(group,id)
+		}else{
+			groupsIds[fileId] = []int{id}
+		}
+	}
+	for fileId,musicsId := range groupsIds {
+		path := filepath.Join(md.indexFolder,fmt.Sprintf("music_%d.dico",fileId))
+		if f,err := os.Open(path) ; err == nil {
+			defer f.Close()
+			// Load all musics
+			for _,id := range musicsId {
+				pos := int64(id - fileId*limitMusicFile)*8
+				posInFile := getInt64FromFile(f,pos)
+				lengthData := getInt64FromFile(f,posInFile)
+				data := make([]byte,lengthData)
+				f.ReadAt(data,posInFile+8)
+
+				var results map[string]string
+				json.Unmarshal(data,&results)
+				musicResults = append(musicResults,results)
+			}
+		}
+	}
+	return musicResults
 }
 
 // GetMusicFromId return the music to an id
 func (md MusicDictionnary)GetMusicFromId(id int)map[string]string{
-	fileId := id / limitMusicFile
+	// Id begin at 1
+    fileId := (id-1) / limitMusicFile
 
 	path := filepath.Join(md.indexFolder,fmt.Sprintf("music_%d.dico",fileId))
 	if f,err := os.Open(path) ; err == nil {
@@ -211,7 +263,6 @@ func (md MusicDictionnary)GetMusicFromId(id int)map[string]string{
 		pos := int64(id - fileId*limitMusicFile)*8
 		posInFile := getInt64FromFile(f,pos)
 		lengthData := getInt64FromFile(f,posInFile)
-
 		data := make([]byte,lengthData)
 		f.ReadAt(data,posInFile+8)
 
@@ -249,23 +300,52 @@ func LoadDictionnary(workingDirectory string)MusicDictionnary{
 
     // Load artist index (list of artist, list of music by artist)
 	md.artistIndex = LoadArtistIndex(workingDirectory)
+	md.artistMusicIndex = LoadArtistMusicIndex(workingDirectory)
     return md
 }
 
-// TODO get a real path
-const (
-	mp3InfoPath = "C:\\tmp\\zik\\mp3info.exe"
-)
-
 // extractInfo get id3tag info
-func extractInfo(filename string)*id3.File{
-    r,_ := os.Open(filename)
+func (md MusicDictionnary)extractInfo(filename string)*id3.File{
+  	r,_ := os.Open(filename)
+	defer r.Close()
 	music := id3.Read(r)
-
-	cmd := exec.Command(mp3InfoPath,"-p","%S",filename)
-	if result,error := cmd.Output() ; error == nil {
-		music.Length = string(result)
+	if music == nil {
+		music = &id3.File{}
 	}
+	if music.Name == "" {
+		music.Name = filepath.Base(filename)
+	}
+	if music.Album == "" {
+		music.Album = "Unknown"
+	}
+	if music.Artist == "" {
+		music.Artist = "Unknown"
+	}
+	// Too long where file is distant, copy in local
+	music.Length = md.getTimeMusic(filename)
 
-    return music
+	return music
+}
+
+
+func (md MusicDictionnary)getTimeMusic(filename string) string{
+	f,_ := os.Open(filename)
+	fmt.Sprintf("%v",f.Fd())
+
+	tmpName := fmt.Sprintf("%d",time.Now().Nanosecond())
+	tmpPath := filepath.Join(os.TempDir(),tmpName)
+
+	ftmp,_ := os.OpenFile(tmpPath,os.O_CREATE|os.O_RDWR,os.ModeTemporary)
+	io.Copy(ftmp,f)
+	f.Close()
+	ftmp.Close()
+
+	defer os.Remove(tmpPath)
+
+	mp3InfoPath := filepath.Join(md.indexFolder,"mp3info.exe")
+	cmd := exec.Command(mp3InfoPath,"-p","%S",tmpPath)
+	if result,error := cmd.Output() ; error == nil {
+		return string(result)
+	}
+	return ""
 }

@@ -1,0 +1,343 @@
+<html>
+
+<head>
+    <script src="../vendors/jquery/jquery-2.1.3.min.js"></script>
+    <script src="../vendors/jquery/jquery-ui.min.js"></script>
+    <script src="../vendors/punch/jquery.ui.touch-punch.min.js"></script>
+    <link rel="stylesheet" href="../vendors/jquery/jquery-ui.min.css"/>
+    <link rel="stylesheet" href="../vendors/bootstrap/css/bootstrap.min.css">
+</head>
+<body>
+
+
+
+<div class="navbar navbar-inverse navbar-fixed-top navbar-md" role="navigation">
+    <div class="container" style="margin-left:0px;">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <span class="navbar-brand glyphicon glyphicon-search" style="cursor:pointer">
+                Prestataires PRS
+            </span>
+
+        </div>
+
+        <div class="collapse navbar-collapse">
+            <ul class="nav navbar-nav">
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Options futures <span class="caret"></span></a>
+                    <ul class="dropdown-menu" role="menu">
+                        <li><a href="#" onclick="TasksPanel.open()">
+                            <span class="glyphicon glyphicon-list-alt"></span>
+                            Search...</a>
+                        </li>
+                        <li><a href="#" onclick="PlaylistPanel.open()">
+                            <span class="glyphicon glyphicon-music"></span>
+                            Playlist...</a>
+                        </li>
+                        <li><a href="#" onclick="Explorer.byArtist()">
+                            <span class="glyphicon glyphicon-user"></span>
+                            List by artist...</a>
+                        </li>
+                        <li><a href="#" onclick="Explorer.byAlbum()">
+                            <span class="glyphicon glyphicon-signal"></span>
+                            List by artist and album...</a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div style="display:none">
+
+<div style="margin-left:20px;margin-bottom:100px;float:left;margin-right:50px">
+    <span style="display:inline-block;border:solid 1px black;padding-left:5px;padding-right:10px;background-color:lightblue">
+        <input type="checkbox" style="margin-right:5px"/> Garage
+        <span class="glyphicon glyphicon-triangle-bottom"></span>
+    </span>
+</div>
+
+<div style="float:left;margin-right:30px;">=></div>
+
+<div style="margin-left:20px;margin-bottom:100px;float:left;">
+    <span style="display:inline-block;border:solid 1px black;padding-left:5px;padding-right:10px;background-color:lightgreen">
+        <input checked type="checkbox" style="margin-right:5px"/> Garage
+        <span class="glyphicon glyphicon-triangle-bottom"></span>
+    </span>
+</div>
+
+
+
+<div style="margin-bottom:100px;clear:both">
+    <span style="margin-left:150px;display:inline-block;border:solid 1px black;padding-left:5px;padding-right:10px;background-color:lightblue">
+        <input type="checkbox" style="margin-right:5px"/> Garage
+        <span class="glyphicon glyphicon-triangle-top"></span>
+    </span>
+
+    <div style="background-color:#c1e8f4;margin-left:20px;margin-top:-1px;width:400px;border:solid 1px black">
+        <div style="border-right:solid 1px black;float:left;width:199px;padding-left:10px">
+            <span style="border-bottom:solid 1px black"><input type="checkbox" style="margin-right:10px"/>Sous type</span>
+            <div style="clear:both">
+                <div><input type="checkbox" style="margin-right:10px;"/>R&eacute;paration &eacute;lectrique</div>
+                <div><input type="checkbox" checked style="margin-right:10px;"/>R&eacute;paration hydraulique</div>
+                <div><input type="checkbox" style="margin-right:10px;"/>R&eacute;paration m&eacute;canique</div>
+                <div><input type="checkbox" style="margin-right:10px;"/>Pare-Brise</div>
+                <div><input type="checkbox" style="margin-right:10px;"/>Di&eacute;seliste (banc)</div>
+                <div><input type="checkbox" checked style="margin-right:10px;"/>Freinage (banc)</div>
+                <div><input type="checkbox" style="margin-right:10px;"/>Frigo</div>
+            </div>
+        </div>
+        <div style="float:right;width:199px;padding-right:10px">
+            <div style="float:right;border-bottom:solid 1px black">Marque <input type="checkbox" style="margin-left:10px"/></div>
+            <div style="padding-left:5px;clear:both">
+                <div style="text-align:right">AUTOSUR<input type="checkbox" style="margin-left:10px;"/></div>
+                <div style="text-align:right">DAF<input type="checkbox" checked style="margin-left:10px;"/></div>
+                <div style="text-align:right">FORD<input type="checkbox" checked style="margin-left:10px;"/></div>
+                <div style="text-align:right">RENAULT<input type="checkbox" style="margin-left:10px;"/></div>
+                <div style="text-align:right">TOYOTA<input type="checkbox" checked style="margin-left:10px;"/></div>
+                <div style="text-align:right">VOLVO<input type="checkbox" style="margin-left:10px;"/></div>
+            </div>
+        </div>
+        <div style="clear:both"></div>
+        <div style="text-align:center">Fermer</div>
+    </div>
+</div>
+
+
+<div style="margin-left:20px;margin-bottom:100px">
+    <div style="border:solid 1px black;padding-left:5px;padding-right:10px;background-color:lightgreen;width:200px">
+        <input type="checkbox" style="margin-right:5px"/> Garage
+        <span class="glyphicon glyphicon-triangle-bottom" style="float:right;padding-top:4px"></span>
+    </div>
+    <div style="border:solid 1px black;padding-left:5px;padding-right:10px;background-color:#a7ffa7;width:200px">
+        R&eacute;paration hydraulique, Freinage (banc)
+    </div>
+    <div style="border:solid 1px black;padding-left:5px;padding-right:10px;background-color:#a7ffa7;width:200px">
+        DAF, FORD, TOYOTA
+    </div>
+
+</div>
+
+</div>
+
+<div style="margin-top:80px;width:1200px;">
+
+<div style="padding-left:10px">
+    Adresse : <input type="text" size="70"/> dans un rayon de 5 kms :   1
+    <div id="slider" style="display:inline-block;width:100px"></div> 200 kms
+    <input type="submit" value="Rechercher" onclick="switchBloc()"/>
+</div>
+
+<div style="width:100%;border:dashed 0px black;padding-top:10px;height:80px;">
+
+<div style="padding-left:10px">
+<input type="checkbox" style="margin-right:10px;"/>Tout cocher / d&eacute;cocher
+</div>
+
+<div style="margin-left:10px;margin-bottom:100px;float:left">
+    <div style="border:solid 1px black;padding-left:5px;padding-right:10px;background-color:lightblue;width:160px">
+        <input type="checkbox" style="margin-right:5px"/> Loueur
+        <span class="glyphicon glyphicon-triangle-bottom" style="float:right;padding-top:4px"></span>
+    </div>
+</div>
+
+
+<div style="margin-left:10px;float:left">
+    <div style="border:solid 1px black;padding-left:5px;padding-right:10px;background-color:lightgreen;width:180px">
+        <input type="checkbox" style="margin-right:5px"/> Garage
+        <span class="glyphicon glyphicon-triangle-bottom" style="float:right;padding-top:4px"></span>
+    </div>
+    <div style="border:solid 1px black;padding-left:5px;padding-right:10px;background-color:#a7ffa7;width:180px">
+        R&eacute;paration hydraulique, Freinage (banc)
+    </div>
+    <div style="border:solid 1px black;padding-left:5px;padding-right:10px;background-color:#a7ffa7;width:180px">
+        DAF, FORD, TOYOTA
+    </div>
+</div>
+
+    <div style="margin-left:10px;margin-bottom:100px;float:left">
+        <div style="border:solid 1px black;padding-left:5px;padding-right:10px;background-color:lightblue;width:160px">
+            <input type="checkbox" style="margin-right:5px"/> Contr&ocirc;le
+            <span class="glyphicon glyphicon-triangle-bottom" style="float:right;padding-top:4px"></span>
+        </div>
+    </div>
+
+    <div style="margin-left:10px;margin-bottom:100px;float:left">
+        <div style="border:solid 1px black;padding-left:5px;padding-right:10px;background-color:lightblue;width:160px">
+            <input type="checkbox" style="margin-right:5px"/> Pneu
+            <span class="glyphicon glyphicon-triangle-bottom" style="float:right;padding-top:4px"></span>
+        </div>
+    </div>
+
+    <div style="margin-left:10px;margin-bottom:100px;float:left">
+        <div style="border:solid 1px black;padding-left:5px;padding-right:10px;background-color:lightblue;width:160px">
+            <input type="checkbox" style="margin-right:5px"/> D&eacute;pannage
+            <span class="glyphicon glyphicon-triangle-bottom" style="float:right;padding-top:4px"></span>
+        </div>
+    </div>
+
+    <div style="margin-left:10px;margin-bottom:100px;float:left">
+        <div style="border:solid 1px black;padding-left:5px;padding-right:10px;background-color:lightblue;width:160px">
+            <input type="checkbox" style="margin-right:5px"/> Type
+            <span class="glyphicon glyphicon-triangle-bottom" style="float:right;padding-top:4px"></span>
+        </div>
+    </div>
+
+</div>
+<div style="clear:both;margin-bottom:10px;">
+    <hr/>
+    <div style="width:48%;float:left;margin-left:5px;border:solid 1px lightgray;height:500px;" id="map">
+
+    </div>
+    <div style="width:48%;float:right;margin-left:10px;margin-right:25px;padding:10px;border:solid 1px lightgray;height:500px;overflow:auto;display:none" class="detail">
+        <h3 style="text-align:left;margin-top:5px"><img src="camion.png" style="margin-right:5px"/>Garage de l'&eacute;tang (12543)
+        <span class="glyphicon glyphicon-remove-circle" style="float:right;padding-right:10px"></span>
+        </h3>
+        <hr style="margin:5px;"/>
+        <h4>Adresse</h4>
+        <span style="display:inline-block;width:120px">Rue / Num&eacute;ro</span>
+        <span style="display:inline-block;width:calc(100% - 195px);background-color:lightgray;margin-top:5px;padding-left:5px;">AVENUE DE LA MOTTE-PICQUET</span>
+        <span style="display:inline-block;width:50px;background-color:lightgray;margin-top:5px;padding-left:5px;">12</span><br/>
+        <span style="display:inline-block;width:120px">Code postal / Ville</span>
+        <span style="display:inline-block;width:100px;background-color:lightgray;margin-top:5px;padding-left:5px;">75015</span>
+        <span style="display:inline-block;width:calc(100% - 245px);background-color:lightgray;margin-top:5px;padding-left:5px;">PARIS</span><br/>
+
+        <h4>Caract&eacute;ristiques</h4>
+        <span style="display:inline-block;width:120px">Type</span>
+        <span style="display:inline-block;width:calc(100% - 140px);background-color:lightgray;margin-top:5px;padding-left:5px;">R&eacute;seau constructeur</span><br/>
+        <span style="display:inline-block;width:120px">Marque</span>
+        <span style="display:inline-block;width:calc(100% - 140px);background-color:lightgray;margin-top:5px;padding-left:5px;">Renault</span><br/>
+        <span style="display:inline-block;width:120px">Activit&eacute;(s)</span>
+        <span style="display:inline-block;width:calc(100% - 140px);background-color:lightgray;margin-top:5px;padding-left:5px;">D&eacute;panneur</span><br/>
+        <span style="display:inline-block;width:120px">Chiffre d'affaires</span>
+        <span style="display:inline-block;width:calc(100% - 140px);background-color:lightgray;margin-top:5px;padding-left:5px;">12.000 &euro;</span><br/>
+
+        <h4>Contact</h4>
+        <span style="display:inline-block;width:120px">T&eacute;l&eacute;phone</span>
+        <span style="display:inline-block;width:calc(100% - 140px);background-color:lightgray;margin-top:5px;padding-left:5px;">01.45.34.65.43</span><br/>
+        <span style="display:inline-block;width:120px">Portable</span>
+        <span style="display:inline-block;width:calc(100% - 140px);background-color:lightgray;margin-top:5px;padding-left:5px;">06.45.34.65.43</span><br/>
+        <span style="display:inline-block;width:120px">T&eacute;l&eacute;copie</span>
+        <span style="display:inline-block;width:calc(100% - 140px);background-color:lightgray;margin-top:5px;padding-left:5px;">01.45.34.65.44</span><br/>
+        <span style="display:inline-block;width:120px">Email</span>
+        <span style="display:inline-block;width:calc(100% - 140px);background-color:lightgray;margin-top:5px;padding-left:5px;">garage@dr.com</span><br/>
+        <span style="display:inline-block;width:120px">Site web</span>
+        <span style="display:inline-block;width:calc(100% - 140px);background-color:lightgray;margin-top:5px;padding-left:5px;"><a href="#">http://www.garage.fr</a></span><br/>
+    </div>
+    <div style="width:48%;float:right;margin-left:10px;margin-right:25px;padding:10px;border:solid 1px lightgray;height:500px;overflow:auto;display:" class="list">
+        <h2>Liste des prestataires</h2>
+        <hr/>
+        <div>
+            <img src="camion.png" style="margin-right:5px;"/>
+            <span style="font-weight:bold">Garage de l'&eacute;tang</span>
+            <span style="float:right;padding-right:30px;"><a>D&eacute;tail</a></span>
+            <br/>
+            12 rue de la Motte-Picquet, Paris - 01.64.76.56.45<br/>
+            Type :  D&eacute;panneur
+        </div>
+        <hr/>
+        <div>
+            <img src="pneu.png" style="margin-right:5px;"/>
+            <span style="font-weight:bold">Garage du rond point</span>
+            <span style="float:right;padding-right:30px;"><a>D&eacute;tail</a></span>
+            <br/>
+            6 rue des Capucines, Paris - 01.24.76.56.45<br/>
+            Type : Pneu
+        </div>
+        <hr/>
+        <div>
+            <img src="cle.png" style="margin-right:5px;"/>
+            <span style="font-weight:bold">Garage du quai</span>
+            <span style="float:right;padding-right:30px;"><a>D&eacute;tail</a></span>
+            <br/>
+            173 quai de Jemmapes, Paris - 01.64.33.56.45<br/>
+            Type : Garage
+        </div>
+        <hr/>
+        <div>
+            <img src="camionmixte.png" style="margin-right:5px;"/>
+            <span style="font-weight:bold">Garage du centre</span>
+            <span style="float:right;padding-right:30px;"><a>D&eacute;tail</a></span>
+            <br/>
+            13 rue du Centre, Paris - 01.64.55.66.45<br/>
+            Type : D&eacute;panneur, Pneu
+        </div>
+        <hr/>
+        <div>
+            <span style="font-weight:bold">Garage de l'&eacute;tang</span>
+            <span style="float:right;padding-right:30px;"><a>D&eacute;tail</a></span>
+            <br/>
+            3 rue de l'&eacute;tang, Paris - 01.64.23.13.45<br/>
+            Type : D&eacute;panneur, Garage
+        </div>
+        <hr/>
+        <div>
+            <span style="font-weight:bold">Garage de l'&eacute;tang</span>
+            <span style="float:right;padding-right:30px;"><a>D&eacute;tail</a></span>
+            <br/>
+            3 rue de l'&eacute;tang, Paris - 01.64.76.11.11<br/>
+            Type : D&eacute;panneur, Garage
+        </div>
+        <hr/>
+    </div>
+
+</div>
+</div>
+
+
+
+<script src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCf0e7TC34X6EzkpsvtKyuqebjiosrzwak&sensor=false" type="text/javascript"></script>
+
+<script>
+$('#slider').slider({value:30})
+
+var map = new google.maps.Map(document.getElementById('map'), {
+zoom: 11,
+streetViewControl:false,
+center: {lng:2.3,lat:48.85}
+});
+
+var m = new google.maps.Marker({position:{lng:2.3,lat:48.85},map:map,title:'ok',icon:'camion.png'})
+new google.maps.Marker({position:{lng:2.35,lat:48.90},map:map,title:'ok',icon:'cle.png'})
+new google.maps.Marker({position:{lng:2.38,lat:48.87},map:map,title:'ok',icon:'camion.png'})
+new google.maps.Marker({position:{lng:2.28,lat:48.88},map:map,title:'ok',icon:'pneu.png'})
+new google.maps.Marker({position:{lng:2.33,lat:48.82},map:map,title:'ok',icon:'cle.png'})
+new google.maps.Marker({position:{lng:2.36,lat:48.84},map:map,title:'ok',icon:'camionmixte.png'})
+new google.maps.Marker({position:{lng:2.42,lat:48.85},map:map,title:'ok',icon:'pneu.png'})
+
+m.addListener('click', function() {
+    var i = new google.maps.InfoWindow({
+        content: '<div id="content">'+
+      '<div id="siteNotice">'+
+      '</div>'+
+      '<h4 id="firstHeading" class="firstHeading">Garage de l\'&eacute;tang</h4>'+
+      '<hr style="margin:0px;margin-bottom:5px;"/><div id="bodyContent">'+
+      '<p><b>D&eacute;panneur</b>, Renault</p>'+
+      '</div>'+
+      '</div>'
+    });
+    i.open(map, m);
+});
+
+
+function switchBloc(){
+    if ($('.detail').is(':visible')){
+        $('.detail').hide()
+        $('.list').show()
+    }else{
+        $('.detail').show()
+        $('.list').hide()
+    }
+}
+
+</script>
+
+
+</body>
+</html>

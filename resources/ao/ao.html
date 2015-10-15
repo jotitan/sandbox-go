@@ -147,11 +147,15 @@
     }
 
     .detailBloc {
-    background-color:orange;
+    background-color:#d5eef6;
     display:none;
     position:absolute;
     border:solid 1px black;
     z-index:1;
+    }
+
+    .detailBloc hr {
+        border-color:darkgray;
     }
 
     .left {
@@ -178,27 +182,23 @@
     }
 
     .selected-types,.selected-marques {
-    background-color:orange;
     font-size:10px;
+    border-top:solid 1px darkgray;
     }
-    .selected-types {
-    border-bottom:solid 1px darkgray;
-    }
+
+    label {font-weight:normal;}
+
 </style>
 
 <div style="margin-top:80px;width:1200px;">
 
 <div style="padding-left:10px">
-    Adresse : <input type="text" size="70"/> dans un rayon de 5 kms :   1
+    Adresse : <input type="text" size="70" id="searchField"/> dans un rayon de 5 kms :   1
     <div id="slider" style="display:inline-block;width:100px"></div> 200 kms
     <input type="submit" value="Rechercher" onclick="switchBloc()"/>
 </div>
 
-<div style="width:100%;border:dashed 0px black;padding-top:10px;height:80px;">
-
-<div style="padding-left:10px">
-<input type="checkbox" style="margin-right:10px;"/>Tout cocher / d&eacute;cocher
-</div>
+<div style="width:100%;padding-top:10px;">
 
 <div class="special-bloc loueur">
     <div>
@@ -211,7 +211,7 @@
 <div class="special-bloc garage">
     <div>
         <input type="checkbox"/> Garage
-        <span class="glyphicon glyphicon-triangle-bottom"/>
+        <span class="glyphicon glyphicon-triangle-bottom"></span>
     </div>
 </div>
 
@@ -232,7 +232,7 @@
 
     <div class="special-bloc depannage">
         <div>
-            <input type="checkbox"/> D&eacute;pannage
+                <input type="checkbox"/> D&eacute;pannage
             <span class="glyphicon glyphicon-triangle-bottom"></span>
         </div>
     </div>
@@ -244,15 +244,18 @@
         </div>
     </div>
 
+    <div style="float:left">
+        <input type="checkbox" style="margin:0px 5px 0px 5px" class="all_select"/>Tous
+    </div>
+
 </div>
-<div style="clear:both;margin-bottom:10px;">
-    <hr/>
+<div style="clear:both;margin-bottom:10px;margin-top:30px;">
     <div style="width:48%;float:left;margin-left:5px;border:solid 1px lightgray;height:500px;" id="map">
 
     </div>
     <div style="width:48%;float:right;margin-left:10px;margin-right:25px;padding:10px;border:solid 1px lightgray;height:500px;overflow:auto;display:none" class="detail">
         <h3 style="text-align:left;margin-top:5px"><img src="camion.png" style="margin-right:5px"/>Garage de l'&eacute;tang (12543)
-        <span class="glyphicon glyphicon-remove-circle" style="float:right;padding-right:10px"></span>
+        <span class="glyphicon glyphicon-remove-circle close" onclick="switchBloc()" style="float:right;padding-right:10px"></span>
         </h3>
         <hr style="margin:5px;"/>
         <h4>Adresse</h4>
@@ -291,7 +294,7 @@
         <div>
             <img src="camion.png" style="margin-right:5px;"/>
             <span style="font-weight:bold">Garage de l'&eacute;tang</span>
-            <span style="float:right;padding-right:30px;"><a>D&eacute;tail</a></span>
+            <span style="float:right;padding-right:30px;cursor:pointer"><a onclick="switchBloc()">D&eacute;tail</a></span>
             <br/>
             12 rue de la Motte-Picquet, Paris - 01.64.76.56.45<br/>
             Type :  D&eacute;panneur
@@ -325,19 +328,21 @@
         </div>
         <hr/>
         <div>
-            <span style="font-weight:bold">Garage de l'&eacute;tang</span>
+            <img src="cle.png" style="margin-right:5px;"/>
+            <span style="font-weight:bold">Garage Picsou</span>
             <span style="float:right;padding-right:30px;"><a>D&eacute;tail</a></span>
             <br/>
-            3 rue de l'&eacute;tang, Paris - 01.64.23.13.45<br/>
-            Type : D&eacute;panneur, Garage
+            6 rue f&eacute;tiche, Paris - 01.32.23.13.45<br/>
+            Type : Garage
         </div>
         <hr/>
         <div>
-            <span style="font-weight:bold">Garage de l'&eacute;tang</span>
+            <img src="camionmixte.png" style="margin-right:5px;"/>
+            <span style="font-weight:bold">Garage Gontran</span>
             <span style="float:right;padding-right:30px;"><a>D&eacute;tail</a></span>
             <br/>
-            3 rue de l'&eacute;tang, Paris - 01.64.76.11.11<br/>
-            Type : D&eacute;panneur, Garage
+            8 rue de la chance, Paris - 01.64.22.11.11<br/>
+            Type : D&eacute;panneur, Pneu
         </div>
         <hr/>
     </div>
@@ -360,7 +365,7 @@
 </div>
 
 
-<script src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCf0e7TC34X6EzkpsvtKyuqebjiosrzwak&sensor=false" type="text/javascript"></script>
+<script src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCf0e7TC34X6EzkpsvtKyuqebjiosrzwak&sensor=false&libraries=places" type="text/javascript"></script>
 
 <script>
 $('#slider').slider({value:30})
@@ -370,6 +375,8 @@ zoom: 11,
 streetViewControl:false,
 center: {lng:2.3,lat:48.85}
 });
+
+var autocomplete = new google.maps.places.Autocomplete($('#searchField').get(0));
 
 var m = new google.maps.Marker({position:{lng:2.3,lat:48.85},map:map,title:'ok',icon:'camion.png'})
 new google.maps.Marker({position:{lng:2.35,lat:48.90},map:map,title:'ok',icon:'cle.png'})
@@ -415,7 +422,7 @@ function switchBloc(){
                 _self.hide();
             })
             $('.global_chk',this.detail).bind('click',function(){
-                $(':checkbox',$(this).parent().parent()).attr('checked',$(this).is(':checked'));
+                $(':checkbox',$(this).parent().parent()).prop('checked',$(this).is(':checked'));
             })
             this.div.append(this.detail);
             $('.glyphicon-triangle-bottom',this.div).bind('click',function(){
@@ -444,10 +451,10 @@ function switchBloc(){
         }
         this.getSelected = function(){
             var results = ["",""];
-            results[0] = $('.data.types :checkbox:checked').toArray().reduce(function(cc,val,idx){
+            results[0] = $('.data.types :checkbox:checked',this.div).toArray().reduce(function(cc,val,idx){
                 return cc + (idx == 0 ?  "":", ") + $(val).val()
             },"");
-            results[1] = $('.data.marques :checkbox:checked').toArray().reduce(function(cc,val,idx){
+            results[1] = $('.data.marques :checkbox:checked',this.div).toArray().reduce(function(cc,val,idx){
                 return cc + (idx == 0 ?  "":", ") + $(val).val()
             },"");
             return results;
@@ -460,21 +467,31 @@ function switchBloc(){
         this.load = function(types,marques){
             $('.data',this.detail).empty()
             types.forEach(function(t){
-                $('.data.types',this.detail).append('<div><input type="checkbox" value="' + t + '"/>' + t + '</div>');
+                $('.data.types',this.detail).append('<div><label><input type="checkbox" value="' + t + '"/>' + t + '</label></div>');
             },this);
             marques.forEach(function(t){
-                $('.data.marques',this.detail).append('<div><input type="checkbox" value="' + t + '"/>' + t + '</div>');
+                $('.data.marques',this.detail).append('<div><label><input type="checkbox" value="' + t + '"/>' + t + '</label></div>');
             },this);
         }
     }
 
-   var types = ["R&eacute;paration &eacute;lectrique","R&eacute;paration hydraulique","R&eacute;paration m&eacute;canique","Pare-Brise","Di&eacute;seliste (banc)","Freinage (banc)","Frigo"]
+    $('.all_select').bind('click',function(){
+          $('.special-bloc > >:checkbox').prop('checked',$(this).is(':checked'))
+    });
+
+   var types = [
+     ["R&eacute;paration &eacute;lectrique","R&eacute;paration hydraulique","R&eacute;paration m&eacute;canique","Pare-Brise","Di&eacute;seliste (banc)","Freinage (banc)","Frigo","Lavage PL"],
+     ["marques r&eacute;seaux"],
+     ["VI","VUL","TP"],
+     ["Chronotachygraphe","Citerne","Elevation atelier","Elevation site","Extincteur atelier","Extincteur site","CT PL","CT VL","Volucompteur site","Volucompteur atelier"],
+     ["D&eacute;pannage","D&eacute;pannage Sous trait&eacute;","Remorquage","Remorquage sous trait&eacute;"],
+   ];
    var marques = ["AUTOSUR","DAF","FORD","CARGLASS","RENAULT","VOLVO","TOYOTA"];
-   new Critere().init('.special-bloc.garage').load(types,marques);
-   new Critere().init('.special-bloc.pneu').load(types,marques);
-   new Critere().init('.special-bloc.loueur').load(types,marques);
-   new Critere().init('.special-bloc.controle').load(types,marques);
-   new Critere().init('.special-bloc.depannage').load(types,marques);
+   new Critere().init('.special-bloc.garage').load(types[0],marques);
+   new Critere().init('.special-bloc.pneu').load(types[1],marques);
+   new Critere().init('.special-bloc.loueur').load(types[2],marques);
+   new Critere().init('.special-bloc.controle').load(types[3],marques);
+   new Critere().init('.special-bloc.depannage').load(types[4],marques);
 
 
 

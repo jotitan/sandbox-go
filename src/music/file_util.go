@@ -15,6 +15,14 @@ func getInts64AsByte(values []int64) []byte {
 	return tab
 }
 
+func getBytesAsInts32(data []byte)[]int32{
+	values := make([]int32,len(data)/4)
+	for i := 0 ; i < len(values) ; i++ {
+		values[i] = int32(binary.LittleEndian.Uint32(data[i*4:(i+1)*4]))
+	}
+	return values
+}
+
 // GetInt64AsByte return a byte array representation of int64
 func getInt64AsByte(n int64) []byte {
 	return []byte{byte(n), byte(n >> 8), byte(n >> 16), byte(n >> 24),
@@ -51,6 +59,12 @@ func getInt32FromFile(f *os.File,pos int64)int32{
 	tab := make([]byte,4)
 	f.ReadAt(tab,pos)
 	return int32(binary.LittleEndian.Uint32(tab))
+}
+
+func getInt16FromFile(f *os.File,pos int64)int16{
+	tab := make([]byte,2)
+	f.ReadAt(tab,pos)
+	return int16(binary.LittleEndian.Uint16(tab))
 }
 
 func writeBytes(to,from []byte,pos int){

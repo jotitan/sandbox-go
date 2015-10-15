@@ -11,6 +11,7 @@ import (
 	"music"
 	"arguments"
 	"logger"
+	"math/rand"
 )
 
 
@@ -106,12 +107,29 @@ func getMarker(bloc,data []byte)Marker{
 func main(){
 	//run()
 
-	logger.GetLogger().Info(7/4)
+	alb := music.MusicByAlbum{}
+
+	musicId := 1
+	for i := 0 ; i < 1000 ; i++ {
+		nb := rand.Int() % 50
+		list := make([]int,0,nb)
+		for id := musicId ; id < musicId + nb ; id++ {
+			list = append(list,id)
+		}
+		musicId+=nb
+		idAlbum := alb.Adds(list)
+		logger.GetLogger().Info("ADD",idAlbum,list)
+	}
+
+	args := arguments.ParseArgs()
+	alb.Save(args["workingFolder"])
+
+	// Get musics of element 5
+	logger.GetLogger().Info(alb.GetMusics(args["workingFolder"],582))
 
 	return
 
 	// Recreate albums index at each time (very quick)
-	args := arguments.ParseArgs()
 	artists := music.LoadArtistIndex(args["workingFolder"])
 	dico := music.LoadDictionnary(args["workingFolder"])
 	artistsIdx := music.LoadArtistMusicIndex(args["workingFolder"])

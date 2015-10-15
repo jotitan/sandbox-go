@@ -4,6 +4,7 @@ import (
     "os"
     "path/filepath"
     "io"
+	"logger"
 )
 
 // Give methods to manage album
@@ -80,30 +81,37 @@ func (mba MusicByAlbum)Save(folder string){
     path := filepath.Join(folder,"album_music.index")
     f,_ := os.OpenFile(path,os.O_CREATE|os.O_TRUNC,os.ModePerm)
     // Reserve header size (nb elements * 8 + 4)
-    f.Write(make([]byte,len(mba.albums)+4))
+    f.Write(getInt32AsByte(int32(len(mba.albums))))
+	f.Write(make([]byte,len(mba.albums)*8))
     mba.header = make([]int64,len(mba.albums))
     io.Copy(f,&mba)
     // Rewrite header at the beginning
+	f.WriteAt(getInts64AsByte(mba.header),4)
+
+	f.Close()
 }
 
 // Struct : nb (4) pos 1 (8) | pos 2 (8) | ... | nb music 1 (2) | musics list (list of 4) | ...
 // Just copy data and save position
 func (mba * MusicByAlbum)Read(p []byte)(int,error){
-    lengthData := 0
+   lengthData := 0
     for {
         if mba.currentWriteId >= len(mba.albums){
-            return lengthData,io.EOF
+			return lengthData,io.EOF
         }
         // Check if enough place to length
         // Check enougth place to write data nb element (2o)
         if len(p) < lengthData + 2 {
-            return lengthData,nil
+			logger.GetLogger().Info("HALF SAVE")
+			return lengthData,nil
         }
         album := mba.albums[mba.currentWriteId]
-        writeBytes(p,getInt16AsByte(int16(len(album))),lengthData)
-        lengthData+=2
+
         if mba.header[mba.currentWriteId] == 0{
-            if mba.currentWriteId == 0 {
+			// Only if not write already
+			writeBytes(p,getInt16AsByte(int16(len(album))),lengthData)
+			lengthData+=2
+			if mba.currentWriteId == 0 {
                 // first position is just after the header
                 mba.header[mba.currentWriteId] = int64(4 + 8*len(mba.albums))
             }else{
@@ -121,6 +129,8 @@ func (mba * MusicByAlbum)Read(p []byte)(int,error){
             writeBytes(p,data,lengthData)
             mba.albums[mba.currentWriteId] = album[nbWritable:]
             lengthData+=len(data)
+			//logger.GetLogger().Fatal(nbWritable,len(p),lengthData,len(data))
+			return lengthData,nil
         }else{
             // write all music
             data := getInts32AsByte(album)
@@ -130,5 +140,25 @@ func (mba * MusicByAlbum)Read(p []byte)(int,error){
         }
     }
     return lengthData,nil
+}
 
+func (mba MusicByAlbum)GetMusics(folder string,albumId int)[]int32{
+	path := filepath.Join(folder,"album_music.index")
+	f,_ := os.Open(path)
+	defer f.Close()
+
+	// Check number of elements
+	nbAlbums := int(getInt32FromFile(f,0))
+	if albumId > nbAlbums {
+		return []int32{}
+	}
+	// Album id start at 1
+	posInHeader := int64((albumId-1)*8+4)
+	posInFile :=  getInt64FromFile(f,posInHeader)
+	nbMusics := int32(getInt16FromFile(f,posInFile))
+	logger.GetLogger().Info("=>",posInHeader,posInFile,nbMusics)
+
+	musicsTab := make([]byte,nbMusics*4)
+	f.ReadAt(musicsTab,posInFile+2)
+	return getBytesAsInts32(musicsTab)
 }

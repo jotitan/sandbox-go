@@ -8,7 +8,7 @@ var PlaylistPanel = {
     current:-1,
     init:function(){
         $.extend(this,Panel)
-        this.initPanel($('#idPlaylist'),'<span class="glyphicon glyphicon-list-alt icon"></span>Tasks')
+        this.initPanel($('#idPlaylist'),'<span class="glyphicon glyphicon-music icon"></span>Playlist')
         this.div.resizable()
         this.listDiv = $('.playlist',this.div)
         // Select behaviour
@@ -23,6 +23,18 @@ var PlaylistPanel = {
            MusicPlayer.load($(this).data("music"));
            PlaylistPanel.current = $(this).data("position");
         });
+        $(document).unbind('delete_event').bind('delete_event',function(){
+            // Delete music. Find position element in list
+            var nb = $('> div:not(.head)',PlaylistPanel.listDiv).length
+            var afters = $('.focused:visible~div',PlaylistPanel.listDiv).length
+            PlaylistPanel.removeMusic(nb-afters);
+        });
+        $(document).unbind('next_event').bind('next_event',function(){
+            PlaylistPanel.next();
+        });
+        $(document).unbind('previous_event').bind('previous_event',function(){
+            PlaylistPanel.previous();
+        });
         this.listDiv.droppable({
             drop:function(event,ui){
                 var idMusic = ui.draggable.data('id');
@@ -31,6 +43,11 @@ var PlaylistPanel = {
             }
         })
 
+    },
+    removeMusic:function(index){
+        $('>div:nth-child(' + (index+1) + ')',this.listDiv).remove();
+        this.list.splice(index,1);
+        // Play next song
     },
     addMusicFromId:function(id){
         $.ajax({
@@ -41,9 +58,6 @@ var PlaylistPanel = {
                 PlaylistPanel.add(data)
             }
         })
-    },
-    remove:function(id){
-
     },
     // Add a new music in list
     add:function(music){

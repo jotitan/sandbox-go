@@ -30,6 +30,8 @@ func (md * MusicDictionnary)Browse(folderName string){
 	dictionnary.Save()
 	dictionnary.artistIndex.Save(md.indexFolder)
 	dictionnary.artistMusicIndex.Save(md.indexFolder)
+
+	IndexArtists(md.indexFolder)
 }
 
 func (md * MusicDictionnary)browseFolder(folderName string){
@@ -45,8 +47,8 @@ func (md * MusicDictionnary)browseFolder(folderName string){
 			} else{
 				// TODO : check in bloomfilter if exist. If true, final check in dictionnary
 				if strings.HasSuffix(file.Name(),".mp3") {
-					logger.GetLogger().Info("Index",path)
 					if info := md.extractInfo(path) ; info != nil {
+						logger.GetLogger().Info("Index",info)
 						md.Add(path, *info)
 					}else{
 						logger.GetLogger().Error("Impossible to add",path)

@@ -64,35 +64,63 @@ func (a sortByArtist)Len() int{return len(a)}
 func (a sortByArtist)Less(i, j int) bool{return a[i]["name"] < a[j]["name"]}
 func (a sortByArtist)Swap(i, j int) {a[i],a[j] = a[j],a[i]}
 
+func (ms MusicServer)getAllArtists(response http.ResponseWriter){
+	logger.GetLogger().Info("Get all artists")
+	// Response with nampe and url
+	artists := music.LoadArtistIndex(ms.folder).FindAll()
+	artistsData := make([]map[string]string,0,len(artists))
+	for artist,id := range artists{
+		artistsData = append(artistsData,map[string]string{"name":artist,"url":fmt.Sprintf("id=%d",id)})
+	}
+	sort.Sort(sortByArtist(artistsData))
+	bdata,_ := json.Marshal(artistsData)
+	response.Write(bdata)
+}
+
+func (ms MusicServer)getMusics(response http.ResponseWriter,musicsIds []int){
+	musics := make([]map[string]string,len(musicsIds))
+	for i,musicId := range musicsIds{
+		m := ms.dico.GetMusicFromId(musicId)
+		delete(m,"path")	// Cause no need to return
+		musics[i] = map[string]string{"name":m["title"],"info":m["length"],"id":fmt.Sprintf("%d",musicId)}
+	}
+	data,_:= json.Marshal(musics)
+	response.Write(data)
+}
+
 func (ms MusicServer)listByArtist(response http.ResponseWriter, request *http.Request){
 	if id := request.FormValue("id") ; id == "" {
-		logger.GetLogger().Info("Get all artists")
-		// Response with nampe and url
-		artists := music.LoadArtistIndex(ms.folder).FindAll()
-		artistsData := make([]map[string]string,0,len(artists))
-		for artist,id := range artists{
-			artistsData = append(artistsData,map[string]string{"name":artist,"url":fmt.Sprintf("id=%d",id)})
-		}
-		sort.Sort(sortByArtist(artistsData))
-		bdata,_ := json.Marshal(artistsData)
-		response.Write(bdata)
+		ms.getAllArtists(response)
 	}else{
 		logger.GetLogger().Info("Load music of artist",id)
 		artistId,_ := strconv.ParseInt(id,10,32)
 		musicsIds := music.LoadArtistMusicIndex(ms.folder).MusicsByArtist[int(artistId)]
-		musics := make([]map[string]string,len(musicsIds))
-		for i,musicId := range musicsIds{
-			m := ms.dico.GetMusicFromId(musicId)
-			delete(m,"path")	// Cause no need to return
-			musics[i] = map[string]string{"name":m["title"],"info":m["length"],"id":fmt.Sprintf("%d",musicId)}
-		}
-		data,_:= json.Marshal(musics)
-		response.Write(data)
+		ms.getMusics(response,musicsIds)
 	}
 }
 
 func (ms MusicServer)listByAlbum(response http.ResponseWriter, request *http.Request){
-	//MOCK
+	 switch{
+		 // return albums of artist
+	  case request.FormValue("id") != "" :
+	  logger.GetLogger().Info("Get all albums")
+	  idArtist,_:= strconv.ParseInt(request.FormValue("id"),10,32)
+		albums := music.NewAlbumByArtist().GetAlbums(ms.folder,int(idArtist))
+	  	albumsData := make([]map[string]string,0,len(albums))
+		for _,album := range albums{
+			albumsData = append(albumsData,map[string]string{"name":album.Name,"url":fmt.Sprintf("idAlbum=%d",album.Id)})
+		}
+		  sort.Sort(sortByArtist(albumsData))
+		  bdata,_ := json.Marshal(albumsData)
+		  response.Write(bdata)
+	  case request.FormValue("idAlbum") != "" :
+	  	idAlbum,_ := strconv.ParseInt(request.FormValue("idAlbum"),10,32)
+	  	musics := music.MusicByAlbum{}.GetMusics(ms.folder,int(idAlbum))
+	  	ms.getMusics(response,musics)
+
+	  default : ms.getAllArtists(response)
+
+	}
 
 }
 

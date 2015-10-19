@@ -4,7 +4,6 @@ import (
     "os"
     "path/filepath"
     "io"
-	"logger"
 )
 
 // Give methods to manage album
@@ -59,6 +58,132 @@ func LoadElementsByFather(folder, filename string)ElementsByFather{
     return ebf
 }
 
+type Album struct{
+    Id int
+    Name string
+}
+
+func NewAlbum(id int, name string)Album{
+    return Album{id,name}
+}
+
+type AlbumByArtist struct{
+    idxByArtist map[int][]Album
+    header []int64
+    currentArtist int
+    previousPosition int64
+    previousDataLength int64
+    max int
+}
+
+func NewAlbumByArtist()AlbumByArtist{
+    return AlbumByArtist{idxByArtist:make(map[int][]Album)}
+}
+
+func (aba * AlbumByArtist)AddAlbum(idArtist int,album Album){
+    if albums,ok := aba.idxByArtist[idArtist] ; !ok{
+        (*aba).idxByArtist[idArtist] = []Album{album}
+    }else{
+        (*aba).idxByArtist[idArtist] = append(albums,album)
+    }
+}
+
+func (aba AlbumByArtist)Save(folder string){
+    path := filepath.Join(folder,"album_by_artist.index")
+    f,_ := os.OpenFile(path,os.O_CREATE|os.O_TRUNC,os.ModePerm)
+    // Get max artist id
+    max := 0
+    for id := range aba.idxByArtist {
+        if id > max {
+            max = id
+        }
+    }
+    // Prepare header (nb elements and size artist
+    aba.header = make([]int64,max)
+    aba.previousPosition = int64(4 + 8*max)
+    aba.max = max
+    f.Write(getInt32AsByte(int32(max)))
+    f.Write(make([]byte,8*max))
+
+    // Copy data
+    io.Copy(f,&aba)
+    f.WriteAt(getInts64AsByte(aba.header),4)
+
+    f.Close()
+
+}
+
+// Save position of data in header. header | len album (2) | id (4) | len name album (1) | album name
+func (aba * AlbumByArtist)Read(p []byte)(int,error){
+    dataLength := 0
+
+    for {
+        if aba.currentArtist > aba.max {
+            return dataLength,io.EOF
+        }
+        // Evaluate block size
+        artist,ok := aba.idxByArtist[aba.currentArtist]
+        if ok {
+            // Artist id start at one
+            // write first header
+            aba.header[aba.currentArtist-1] = aba.previousPosition + aba.previousDataLength
+            aba.previousPosition = aba.header[aba.currentArtist-1]
+
+            // Check enough place
+            estimateSize := 2
+            for _,album := range artist {
+                estimateSize+=5 + len(album.Name)
+            }
+            aba.previousDataLength=int64(estimateSize)
+            if dataLength + estimateSize > len(p) {
+                return dataLength,nil
+            }
+            writeBytes(p,getInt16AsByte(int16(len(artist))),dataLength)
+            dataLength+=2
+            for _,album := range artist {
+                writeBytes(p,getInt32AsByte(int32(album.Id)),dataLength)
+                p[dataLength+4] = byte(len(album.Name))
+                writeBytes(p,[]byte(album.Name),dataLength+5)
+                dataLength+=5+len(album.Name)
+
+            }
+        }
+        aba.currentArtist++
+    }
+}
+
+func (mba AlbumByArtist)GetAlbums(folder string,artistId int)[]Album{
+    path := filepath.Join(folder,"album_by_artist.index")
+    f,_ := os.Open(path)
+    defer f.Close()
+
+    // Read artist position
+    // Check number of element
+    nbArtists := int(getInt32FromFile(f,0))
+
+    if artistId > nbArtists  {
+        return []Album{}
+    }
+    posInHeader := int64(4 + (artistId -1)*8)
+    posInFile := getInt64FromFile(f,posInHeader)
+    if posInFile == 0 {
+        return []Album{}
+    }
+    nbAlbums := int(getInt16FromFile(f,posInFile))
+
+    posInFile+=2
+    albums := make([]Album,nbAlbums)
+    for i := 0 ; i < nbAlbums ; i++ {
+        id := getInt32FromFile(f,posInFile)
+        lengthName := getInt8FromFile(f,posInFile+4)
+        nameTab := make([]byte,lengthName)
+        f.ReadAt(nameTab,posInFile+5)
+        albums[i] = NewAlbum(int(id),string(nameTab))
+        posInFile+=int64(5+lengthName)
+    }
+    return albums
+}
+
 // Album have a list of music. Id album => ids music
 type MusicByAlbum struct {
     albums [][]int
@@ -66,6 +191,8 @@ type MusicByAlbum struct {
     currentWriteId int
     // Store all positions
     header []int64
+    // used to define next position data in header
+    currentAlbumSize int
 }
 
 // return id of album. Id start at one
@@ -102,12 +229,12 @@ func (mba * MusicByAlbum)Read(p []byte)(int,error){
         // Check if enough place to length
         // Check enougth place to write data nb element (2o)
         if len(p) < lengthData + 2 {
-			logger.GetLogger().Info("HALF SAVE")
 			return lengthData,nil
         }
         album := mba.albums[mba.currentWriteId]
 
         if mba.header[mba.currentWriteId] == 0{
+
 			// Only if not write already
 			writeBytes(p,getInt16AsByte(int16(len(album))),lengthData)
 			lengthData+=2
@@ -115,9 +242,11 @@ func (mba * MusicByAlbum)Read(p []byte)(int,error){
                 // first position is just after the header
                 mba.header[mba.currentWriteId] = int64(4 + 8*len(mba.albums))
             }else{
+                // When new turn, album size can be change. Impossible to get correct position. Save in file
                 // Take last position and add last length data
-                mba.header[mba.currentWriteId] = mba.header[mba.currentWriteId-1] + int64(len(mba.albums[mba.currentWriteId-1])*4 + 2)
+                mba.header[mba.currentWriteId] = mba.header[mba.currentWriteId-1] + int64(mba.currentAlbumSize*4 + 2)
             }
+            mba.currentAlbumSize = len(album)
         }
 
         // Write in header only if header is empty (cause partial write could append)
@@ -129,7 +258,7 @@ func (mba * MusicByAlbum)Read(p []byte)(int,error){
             writeBytes(p,data,lengthData)
             mba.albums[mba.currentWriteId] = album[nbWritable:]
             lengthData+=len(data)
-			//logger.GetLogger().Fatal(nbWritable,len(p),lengthData,len(data))
+			//logger.GetLogger().Fatal(nbWritable,len(p),lengthData,len(data),mba.currentWriteId)
 			return lengthData,nil
         }else{
             // write all music
@@ -142,7 +271,7 @@ func (mba * MusicByAlbum)Read(p []byte)(int,error){
     return lengthData,nil
 }
 
-func (mba MusicByAlbum)GetMusics(folder string,albumId int)[]int32{
+func (mba MusicByAlbum)GetMusics(folder string,albumId int)[]int{
 	path := filepath.Join(folder,"album_music.index")
 	f,_ := os.Open(path)
 	defer f.Close()
@@ -150,15 +279,14 @@ func (mba MusicByAlbum)GetMusics(folder string,albumId int)[]int32{
 	// Check number of elements
 	nbAlbums := int(getInt32FromFile(f,0))
 	if albumId > nbAlbums {
-		return []int32{}
+		return []int{}
 	}
 	// Album id start at 1
 	posInHeader := int64((albumId-1)*8+4)
 	posInFile :=  getInt64FromFile(f,posInHeader)
 	nbMusics := int32(getInt16FromFile(f,posInFile))
-	logger.GetLogger().Info("=>",posInHeader,posInFile,nbMusics)
 
 	musicsTab := make([]byte,nbMusics*4)
 	f.ReadAt(musicsTab,posInFile+2)
-	return getBytesAsInts32(musicsTab)
+    return getBytesAsInts32Int(musicsTab)
 }

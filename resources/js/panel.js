@@ -147,7 +147,7 @@ var WindowsNavManager = {
         this.setActive(panel)
     },
     remove:function(panel){
-        this.div.find('button[data-inner-id="' + panel.id + '"]').parent().remove()
+        this.div.find('button[data-inner-id="' + panel.id + '"]').remove()
         //this.div.find('button[data-inner-id="' + panel.id + '"]').remove()
     },
     setActive:function(panel){

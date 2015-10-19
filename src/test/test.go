@@ -10,8 +10,6 @@ import (
 	"sync"
 	"music"
 	"arguments"
-	"logger"
-	"math/rand"
 )
 
 
@@ -98,7 +96,7 @@ func getMarker(bloc,data []byte)Marker{
 		}
 	case 3 : formatData = intReader.ReadInt16(bloc[8:])
 	case 4 : formatData = intReader.ReadInt32(bloc[8:])
-	default:formatData = bloc[8:]
+		default:formatData = bloc[8:]
 	}
 
 	return Marker{marker,typeMarker,length,formatData}
@@ -107,53 +105,11 @@ func getMarker(bloc,data []byte)Marker{
 func main(){
 	//run()
 
-	alb := music.MusicByAlbum{}
-
-	musicId := 1
-	for i := 0 ; i < 1000 ; i++ {
-		nb := rand.Int() % 50
-		list := make([]int,0,nb)
-		for id := musicId ; id < musicId + nb ; id++ {
-			list = append(list,id)
-		}
-		musicId+=nb
-		idAlbum := alb.Adds(list)
-		logger.GetLogger().Info("ADD",idAlbum,list)
-	}
 
 	args := arguments.ParseArgs()
-	alb.Save(args["workingFolder"])
 
-	// Get musics of element 5
-	logger.GetLogger().Info(alb.GetMusics(args["workingFolder"],582))
 
-	return
-
-	// Recreate albums index at each time (very quick)
-	artists := music.LoadArtistIndex(args["workingFolder"])
 	dico := music.LoadDictionnary(args["workingFolder"])
-	artistsIdx := music.LoadArtistMusicIndex(args["workingFolder"])
-	nb,nbA := 0,0
-	for artist, id := range  artists.FindAll() {
-		musicsIds := artistsIdx.MusicsByArtist[id]
-		// Load all tracks and group by album
-		albums  := make(map[string][]int)
-		musics := dico.GetMusicsFromIds(musicsIds)
-		nb+=len(musics)
-		for i,music := range musics  {
-			if ids,ok := albums[music["album"]] ; ok {
-				albums[music["album"]] = append(ids,musicsIds[i])
-			}else{
-				albums[music["album"]] = []int{musicsIds[i]}
-			}
-		}
-		nbA+=len(albums)
-		logger.GetLogger().Info("=>",artist,len(musics),len(albums),albums)
-	}
-	logger.GetLogger().Info(nb,nbA)
-	return
-
-	//dico := music.LoadDictionnary(args["workingFolder"])
 	dico.Browse(args["browse"])
 
 

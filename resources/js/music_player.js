@@ -33,9 +33,7 @@ var MusicPlayer = {
                MusicPlayer.play();
             });
             $('.pause',this.div).bind('click',function(){
-               MusicPlayer.player.pause();
-               $(this).hide();
-              $('.play',_self.div).show();
+               MusicPlayer.pause();
             });
             $('.next',this.div).bind('click',function(){
                 MusicPlayer.playlist.next();
@@ -43,6 +41,38 @@ var MusicPlayer = {
             $('.previous',this.div).bind('click',function(){
                 MusicPlayer.playlist.previous();
             });
+            MusicPlayer.player.volume = 0.5;
+            this.updateVolumeClass();
+            // Volume Behaviour
+            $('.volume-plus',this.div).bind('click',function(){
+                if(MusicPlayer.player.volume >= 0.9){
+                    MusicPlayer.player.volume=1;
+                }else{
+                    MusicPlayer.player.volume+=0.05;
+                }
+                _self.updateVolumeClass();
+            });
+            $('.volume-minus',this.div).bind('click',function(){
+                if(MusicPlayer.player.volume <= 0.1){
+                    MusicPlayer.player.volume=0;
+                }else{
+                    MusicPlayer.player.volume-=0.05;
+                }
+                _self.updateVolumeClass();
+            });
+        },
+        updateVolumeClass:function(){
+             $('.volume-100,.volume-50,.volume-0',this.div).hide();
+             $(this.searchVolumeClass()).show();
+        },
+        searchVolumeClass:function(){
+             if(MusicPlayer.player.volume == 0){
+                return ".volume-0";
+             }
+             if(MusicPlayer.player.volume > 0.7){
+                return ".volume-100";
+             }
+             return ".volume-50";
         },
         setTitle:function(title){
             $('.title',this.div).text(title);
@@ -73,12 +103,37 @@ var MusicPlayer = {
             if(MusicPlayer.playlist!=null){
                 MusicPlayer.playlist.next();
             }
-        })
+        });
+        // Detect key controls
+        $(document).bind('keypress',function(e){
+            var key = (e.keyCode != 0)?e.keyCode:e.charCode;
+            switch(key){
+                case 46 : $(document).trigger('delete_event');break;
+                case 112 : $(document).trigger('pause_event');break;
+                case 34 : $(document).trigger('next_event');break;
+                case 33 : $(document).trigger('previous_event');break;
+            }
+        });
+        $(document).unbind('pause_event').bind('pause_event',function(){
+            if(MusicPlayer.player.src == ""){
+                return;
+            }
+            if(MusicPlayer.player.paused){
+                MusicPlayer.play();
+            }else{
+                MusicPlayer.pause();
+            }
+        });
     },
     load:function(music){
         this.player.src = music.src;
         this.controls.setTitle(music.title);
         this.play();
+    },
+    pause:function(){
+        this.player.pause();
+        $('.pause',this.div).hide();
+        $('.play',this.div).show();
     },
     play:function(){
         MusicPlayer.player.play();

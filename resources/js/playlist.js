@@ -7,8 +7,8 @@ var PlaylistPanel = {
     list:[],
     current:-1,
     init:function(){
-        $.extend(this,Panel)
-        this.initPanel($('#idPlaylist'),'<span class="glyphicon glyphicon-music icon"></span>Playlist')
+        $.extend(true,this,Panel)
+        this.initPanel($('#idPlaylist'),'<span class="glyphicon glyphicon-music icon"></span>Playlist',true)
         this.div.resizable()
         this.listDiv = $('.playlist',this.div)
         // Select behaviour
@@ -22,6 +22,7 @@ var PlaylistPanel = {
            $(this).addClass('played');
            MusicPlayer.load($(this).data("music"));
            PlaylistPanel.current = $(this).data("position");
+           PlaylistPanel.saveCurrent();
         });
         $(document).unbind('delete_event').bind('delete_event',function(){
             // Delete music. Find position element in list
@@ -42,12 +43,35 @@ var PlaylistPanel = {
                 PlaylistPanel.addMusicFromId(idMusic);
             }
         })
-
+        // Load saved playlist
+        this.load();
+    },
+    load:function(){
+        if(localStorage && localStorage["playlist"]!=null){
+            var musics = JSON.parse(localStorage["playlist"]);
+            musics.forEach(function(m){
+                PlaylistPanel.add(m,true);
+            });
+            this.current = parseInt(localStorage["current"])
+            this._selectLine();
+            this.open();
+        }
+    },
+    // Save current playlist and current music in localstorage
+    save:function(){
+        if(localStorage){
+            localStorage["playlist"] = JSON.stringify(this.list);
+        }
+    },
+    saveCurrent:function(){
+        if(localStorage){
+            localStorage["current"] = this.current;
+        }
     },
     removeMusic:function(index){
         $('>div:nth-child(' + (index+1) + ')',this.listDiv).remove();
         this.list.splice(index,1);
-        // Play next song
+        // Play next song ?
     },
     addMusicFromId:function(id){
         $.ajax({
@@ -60,13 +84,16 @@ var PlaylistPanel = {
         })
     },
     // Add a new music in list
-    add:function(music){
+    add:function(music,noSave){
         var position = $('div',this.listDiv).length;
         var line = $('<div><span>' + position + '</span><span>' + music.title + '</span><span>' + MusicPlayer._formatTime(music.length) + '</span></div>');
         line.data("position",position-1);
         line.data("music",music);
         this.listDiv.append(line);
         this.list.push(music);
+        if(noSave == null || noSave == false){
+            this.save();
+        }
     },
     _selectLine:function(){
         var line = $('div:nth-child(' + (this.current+2) + ')',this.listDiv);

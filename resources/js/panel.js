@@ -9,16 +9,17 @@ var Panel = {
     cssInfo:null,
     name:"",
     id:"",
-    initPanel : function(div,name){
+    initPanel : function(div,name,singleton){
         var _self = this
         this.name = name;
         this.id = div.attr('id')
         this.div = div;
         this.div.draggable({handle:".title",containment:"window"})
+        this.singleton = singleton;
 
         $('.title > span:first',this.div).after('<span class="glyphicon glyphicon-minus close minimize_button"></span>');
         if($('.title',this.div).data('nomaximize') == null){
-            $('.title > span:first',this.div).after('<span class="glyphicon glyphicon-th-large close maximize_button"></span>');
+            $('.title > span:first',this.div).after('<span class="glyphicon glyphicon-resize-full close maximize_button"></span>');
         }
         $('.title > span:first',this.div).after('<span class="glyphicon glyphicon-remove close close_button"></span>');
 
@@ -38,10 +39,30 @@ var Panel = {
                 }
             });
         }
-
         this.div.bind('mousedown',function(){
             WindowsNavManager.setActive(_self)
-        })
+        });
+
+        // Split screen
+        if($('.half-screen',this.div).length > 0 && $('.half-screen',this.data).data('split')!=""){
+            var _self = this;
+            var other = window[$('.half-screen',this.div).data('split')];
+            $('.half-screen',this.div).after('<span class="glyphicon glyphicon glyphicon-eye-open close end-half-screen" style="display:none"/>');
+            $('.half-screen',this.div).unbind('click').bind('click',function(){
+                // Check if explorer is open
+                if (other.isVisible()){
+                    other.halfMaximize(_self);
+                    $(this).hide();
+                    $('.end-half-screen',_self.div).show();
+                }
+            });
+
+            $('.end-half-screen',this.div).unbind('click').bind('click',function(){
+                $(this).hide();
+                $('.half-screen',_self.div).show();
+                other.endHalfMaximize(_self);
+            });
+        }
     },
     show:function(){
         this.div.show()
@@ -54,7 +75,7 @@ var Panel = {
     },
     open:function(){
         this.div.trigger('open',arguments);
-        this.show()
+        this.show();
         WindowsNavManager.add(this)
     },
     close:function(){
@@ -65,22 +86,46 @@ var Panel = {
     toggleMaximize:function(button){
           if(this.div.hasClass('maximize-panel-size')){
              this.unmaximize();
-             button.removeClass('glyphicon-th').addClass('glyphicon-th-large');
-             this.div.draggable('enable');
-             this.div.resizable('enable');
+             button.removeClass('glyphicon-resize-small').addClass('glyphicon-resize-full');
+             this.unblockAction();
          }else{
              this.maximize();
-             button.removeClass('glyphicon-th-large').addClass('glyphicon-th');
-             this.div.draggable('disable');
-             this.div.resizable('disable');
+             button.removeClass('glyphicon-resize-full').addClass('glyphicon-resize-small');
+             this.blockAction();
          }
     },
     maximize:function(){
         this._css.save(this.div);
-        this._css.remove(this.div);
+        this._css.remove(this.div,'maximize-panel-size');
     },
     unmaximize:function(){
         this._css.restore(this.div);
+    },
+    blockAction:function(){
+        this.div.draggable('disable');
+        this.div.resizable('disable');
+    },
+    unblockAction:function(){
+        this.div.draggable('enable');
+        this.div.resizable('enable');
+    },
+    // place two panels at each part of screen (left and right)
+    halfMaximize:function(otherPanel){
+        this._css.save(this.div);
+        otherPanel._css.save(otherPanel.div);
+
+        this.blockAction();
+        otherPanel.blockAction();
+
+        this._css.remove(this.div,'half-left-panel');
+        otherPanel._css.remove(otherPanel.div,'half-right-panel');
+    },
+    endHalfMaximize:function(otherPanel){
+        this.unblockAction();
+        otherPanel.unblockAction();
+
+        this._css.restore(this.div);
+        otherPanel._css.restore(otherPanel.div);
     },
     _css:{
         info:null,
@@ -98,6 +143,8 @@ var Panel = {
                return;
            }
            div.removeClass('maximize-panel-size');
+           div.removeClass('half-right-panel');
+           div.removeClass('half-left-panel');
            div.css({
                left:this.info.left,
                top:this.info.top,
@@ -107,10 +154,10 @@ var Panel = {
            });
            this.info = null;
         },
-        remove:function(div){
+        remove:function(div,classToAdd){
             div.css({left:'',top:'',width:'',height:'',boxShadow:'0px 0px 0px 0px'})
             div.removeClass('normal-panel-size');
-            div.addClass('maximize-panel-size');
+            div.addClass(classToAdd);
         }
     }
 }
@@ -136,13 +183,18 @@ var WindowsNavManager = {
     },
     // Panel contain variable name, method hide, show and isVisible
     add:function(panel){
+        if(panel.singleton){
+            // Check button exist
+            if($('ul button[data-inner-id="' + panel.id + '"]',this.div).length > 0){
+                return
+            }
+        }
         var button = $("<button class=\"btn btn-default task-button active\">" + panel.name + "</button>")
         button.data("panel",panel).attr("data-inner-id",panel.id)
         panel.div.data("button",button).attr("data-inner-id",panel.id)
         button.bind('click',function(){
             WindowsNavManager.doAction($(this).data("panel"))
         })
-        //this.div.append(button)
          $('ul',this.div).append(button.wrap("<li></li>"))
         this.setActive(panel)
     },

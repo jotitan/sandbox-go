@@ -8,8 +8,9 @@ var Explorer = {
     currentPath :"",
     currentTypeLoad:"",
     urlServer:"",
+    fctClick:null,
     init:function(){
-        $.extend(this,Panel) ;
+        $.extend(true,this,Panel) ;
         this.initPanel($('#idExplorePanel'),'<span class="glyphicon glyphicon-hdd"></span> Explore');
         this.div.resizable({minWidth:250});
         this.breadcrumb = $('.breadcrumb',this.div)
@@ -40,6 +41,9 @@ var Explorer = {
                 $('>span[class^="' + value + '"]',Explorer.panelFolder).show()
             }
         });
+    },
+    addClickBehave:function(fct){
+       this.fctClick = fct;
     },
     loadPath:function(path,display,noAddBC){
         $('.info-folders > span.filter > :text',this.div).val("")
@@ -106,6 +110,12 @@ var Explorer = {
                 // Last element, display server where data is
                 span.data("id",data[file].id)
                 span.draggable({revert:true,helper:'clone'})
+                // Dbl click to playlist
+                if(this.fctClick){
+                    span.bind('dblclick',function(){
+                        Explorer.fctClick(data[file].id);
+                    });
+                }
             }
             this.panelFolder.append(span);
         }

@@ -390,6 +390,20 @@ label > [type="checkbox"] {
    left:0px;
 }
 
+.half-left-panel {
+   width:calc(50% - 4px);
+   height:calc(100% - 80px);
+   top:47px;
+   left:0px;
+}
+
+.half-right-panel {
+   width:calc(50% - 8px);
+   height:calc(100% - 80px);
+   top:47px;
+   left:50%;
+}
+
 /* Message info */
 .message-cluster {
     padding-left:30px;

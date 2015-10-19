@@ -43,7 +43,6 @@
                 Music
             </span>
 
-
             <p class="progress navbar-text" style="width:200px;display:inline-block;margin-bottom:0px">
                 <span id="idTotalBar" class="progress-bar  progress-bar-success" style="display:inline-block"
                      title="musics" role="progressbar" aria-valuenow="1">
@@ -107,14 +106,11 @@
 <br/><br/><br/>
 TODO :
 <pre>
-
-
     Affichage etat de la machine qui a l'application
     Graphique sur statistiques musique
     Correction bug scroll music (chrome)
 
     Mode Threejs, D3 pour de la visualisation
-    local storage de la musique en cours et de la playlist (pour remettre avant
 </pre>
 
 <style>
@@ -131,8 +127,9 @@ TODO :
 
 <script>
     $(function(){
-
+        WindowsNavManager.init('idWindowsNav');
         Loader.launch(function(){
+            Explorer.addClickBehave(function(id){PlaylistPanel.addMusicFromId(id);})
             Explorer.byArtist = function(){
                 this.open("/listByArtist");
             };
@@ -140,7 +137,6 @@ TODO :
                 this.open("/listByAlbum");
             };
             MusicPlayer.init();
-            WindowsNavManager.init('idWindowsNav');
             MusicPlayer.setPlaylist(PlaylistPanel);
         });
     })

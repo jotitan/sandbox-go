@@ -1,0 +1,29 @@
+<div ng-controller="OrganizationController">
+    <h2>Organization</h2>
+    <div class="input-group date" id="idDatePicker" style="width:200px">
+        <input type="text" class="form-control" placeholder="Date" ng-model="selected.date">
+                    <span class="input-group-addon">
+                        <i class="glyphicon glyphicon-th"></i>
+                    </span>
+    </div>
+    <div class="row">
+        <div class="col-md-4">
+            <p style="text-align:center">Entities</p>
+            <select class="form-control" ng-model="selected.entity" size="10" ng-options="entity for entity in results.entities">
+                <option style="display:none"></option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <p style="text-align:center">Books</p>
+            <select class="form-control" ng-model="selected.book" size="10" ng-options="book for book in results.books">
+                <option style="display:none"></option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <p style="text-align:center">Portfolios</p>
+            <select class="form-control" size="10">
+                <option ng-repeat="portfolio in results.portfolios">{{portfolio}}</option>
+            </select>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,20 @@
+<div ng-controller="SearchController">
+    <h1>Search</h1>
+
+    <pre ace-editor style="height:150px" data-ng-model="query" ></pre>
+    <div style="float:right;margin-right:10px;">
+        <span style="cursor:pointer" class="glyphicon glyphicon-search" title="Search" ng-click="search()"></span>
+    </div>
+
+</div>
+
+<div ng-controller="ResultsController">
+    <select ng-options="header as header.name for header in results.headers track by header.name" ng-model="selectField"/>
+    {{selectField}}
+    <div style="float:left">{{nbResult}} results
+        (<span class="glyphicon glyphicon-time" style="margin-right:5px"></span>{{execTime}} ms)
+    </div>
+    <div style="clear:both"></div>
+
+    <div ui-grid="gridOptions" ui-grid-expandable external-scopes="infos" ui-grid-cellNav style="width:99%;height:400px"></div>
+</div>

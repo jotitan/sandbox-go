@@ -1,0 +1,5 @@
+{
+	"proxy":"http://gecd-proxy:8080",
+	"https-proxy":"http://gecd-proxy:8080",
+	"directory":"vendors"
+}

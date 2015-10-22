@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html ng-app="search-module">
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Main page</title>
+
+    <script src="vendors/jquery/dist/jquery.min.js"></script>
+    <script src="vendors/jquery-ui/jquery-ui.min.js"></script>
+    <script src="vendors/bootstrap/dist/js/bootstrap.min.js"></script>
+    <link href="vendors/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet"/>
+
+    <!-- Angular -->
+    <script src="vendors/angular/angular.min.js"></script>
+    <script src="vendors/angular-route/angular-route.min.js"></script>
+    <script src="vendors/angular-touch/angular-touch.min.js"></script>
+    <script src="vendors/angular-animate/angular-animate.min.js"></script>
+
+    <!-- Ace editor -->
+    <script src="vendors/ace-builds/src-min-noconflict/ace.js"></script>
+
+    <!-- NG Grid -->
+    <script src="vendors/angular-ui-grid/ui-grid.min.js"></script>
+    <link rel="stylesheet" href="vendors/angular-ui-grid/ui-grid.min.css" type="text/css">
+
+    <!-- Date Picker -->
+    <script src="vendors/bootstrap-datepicker/js/bootstrap-datepicker.js"></script>
+    <link rel="stylesheet" href="vendors/bootstrap-datepicker/css/datepicker3.css"/>
+    
+    <!--  UI  bootstrap-->
+     <script src="vendors/bootstrap-gh-pages/ui-bootstrap-tpls-0.12.0.min.js"></script>
+
+    <!-- User -->
+    <script src="js/directives/AceDirective.js"></script>
+    <script src="js/services/SearchService.js"></script>
+    <script src="js/services/HostService.js"></script>
+    <script src="js/services/BatchService.js"></script>
+    <script src="js/services/OrganizationService.js"></script>
+
+    <script src="js/controllers/SearchController.js"></script>
+    <script src="js/controllers/HomeController.js"></script>
+    <script src="js/controllers/ReferentielController.js"></script>
+    <script src="js/controllers/OrganizationController.js"></script>
+    <script src="js/controllers/BatchController.js"></script>
+
+    <script src="js/config.js"></script>
+    <script src="js/app.js"></script>
+
+    <link href="css/style.css" rel="stylesheet"/>
+
+</head>
+
+<body ng-controller="HomeController">
+
+<div class="navbar navbar-inverse" role="navigation">
+    <div class="container">
+        <div class="navbar-header">
+            <span class="navbar-brand"><a href="#/home">Tore GUI</a></span>
+        </div>
+        <div class="navbar-collapse collapse">
+            <ul class="nav navbar-nav">
+                <li>
+                   <a href="#/search"><span class="glyphicon glyphicon-search"></span>Search</a>
+                </li>
+                <li>
+                    <a href="#/referentiel"><span class="glyphicon glyphicon-bookmark"></span>Repository</a>
+                </li>
+            </ul>
+
+            <div class="navbar-form navbar-right" ng-include="'pages/host-selection.html'"></div>
+            <p class="navbar-text navbar-right">HOST :</p>
+
+        </div>
+    </div>
+</div>
+
+<div ng-view></div>
+
+</body>
+</html>

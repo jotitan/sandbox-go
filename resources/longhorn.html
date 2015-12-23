@@ -1,0 +1,51 @@
+<html>
+
+<head>
+
+</head>
+
+<body>
+
+<div>
+
+    <canvas width="1000" height="600" id="canvas"></canvas>
+
+    <script>
+      var canvas = document.getElementById('canvas').getContext('2d');
+
+      var colors =  ["#1C2341","#E77407","#96C765","#F5F5F5"] ;
+
+     function draw(caseBoard){
+        var x = (caseBoard.position%3)*300;
+        var y = Math.floor(caseBoard.position/3)*200;
+        canvas.fillStyle = "#0033CC";
+        canvas.fillRect(x,y,290,190);
+
+        var idx = 1;
+        for(var i in caseBoard.cows){
+            if(caseBoard.cows[i] > 0){
+                canvas.beginPath();
+                canvas.fillStyle = colors[i];
+                canvas.arc(x + 30,y + idx*30,10,0,2*Math.PI);
+                canvas.fill();
+                canvas.closePath();
+                canvas.font = "15px Arial";
+                canvas.fillText("X " + caseBoard.cows[i],x + 50,y + idx*30 + 6);
+                idx++;
+            }
+        }
+     }
+
+     for(var i = 0 ; i < 9 ; i++){
+        draw({position:i,name:"Name " + i,cows:{0:1,1:2,2:0,3:1}});
+     }
+
+
+
+    </script>
+
+</div>
+
+</body>
+
+</html>

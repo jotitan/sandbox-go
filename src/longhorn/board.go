@@ -43,6 +43,11 @@ type Board struct{
 	p2 Player
 	currentPlayer * Player
 	currentCase * Case
+	idBoard int
+}
+
+func (b Board)GetId()int{
+	return b.idBoard
 }
 
 func (b * Board)KillColor(color int){
@@ -54,6 +59,10 @@ func (b * Board)KillColor(color int){
 	for _,c := range b.cases {
 		c.TakeColor(color)
 	}
+}
+
+func (b * Board)MoveCase(nextCase int){
+	b.currentCase = b.cases[nextCase]
 }
 
 func (b * Board)SwitchPlayer(){
@@ -165,10 +174,10 @@ func (b * Board)selectPlayer(firstPlayer int){
 	}
 }
 
-func NewBoard(firstPlayer int)Board{
+func NewBoard(firstPlayer int,idBoard int)Board{
 	positions := []int{0,1,2,3,4,5,6,7,8}
 	cows := getCows()
-	board := Board{}
+	board := Board{idBoard:idBoard}
 	sortRandomly(positions)
 	sortRandomly(actions)
 	for i,pos := range positions {

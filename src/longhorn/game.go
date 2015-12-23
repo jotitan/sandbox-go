@@ -1,6 +1,9 @@
 package longhorn
 
-import "errors"
+import (
+	"errors"
+	"net/http"
+)
 
 
 // Manage workflow of game
@@ -55,7 +58,7 @@ func workflow(b Board,e Event)error{
 		switchPlayer = b.currentCase.ExecuteSpecificAction(b,*e.Info)
 	}
 	// Move next player
-
+	b.MoveCase(e.NextCasePos)
 
 	// Switch player or not
 	if switchPlayer {
@@ -63,9 +66,58 @@ func workflow(b Board,e Event)error{
 	}
 
 	// Send data to user (player info and board data)
-
+//	m := NewServerMessage(b)
 
 
 	// Check if a winner
 	return nil
+}
+
+// PlayerDialog manage communication from server to player (SSE)
+type PlayerDialog struct{
+	response http.ResponseWriter
+}
+
+func (pd * PlayerDialog)createSSEHeader(){
+	pd.response.Header().Set("Content-Type","text/event-stream")
+	pd.response.Header().Set("Cache-Control","no-cache")
+	pd.response.Header().Set("Connection","keep-alive")
+	pd.response.Header().Set("Access-Control-Allow-Origin","*")
+}
+
+func (pd PlayerDialog)sendMessage(data []byte){
+	pd.response.Write([]byte("data: " + string(data) + "\n\n"))
+	pd.response.(http.Flusher).Flush()
+}
+
+type Game struct{
+	Board Board
+
+}
+
+
+type GameManager struct{
+	games []*Game
+	gamesById map[int]*Game
+	counterIdGame int
+}
+
+func NewGameManager()GameManager{
+	return GameManager{make([]*Game,0),make(map[int]*Game),0}
+}
+
+func (gm GameManager)GetGame(idGame int)(*Game,error){
+	if game,exist:= gm.gamesById[idGame] ; exist{
+		return game,nil
+	}
+	return nil,errors.New("Game doesn't exist")
+}
+
+func (gm * GameManager)CreateGame()*Game{
+	id := gm.counterIdGame
+	gm.counterIdGame++
+	g := Game{NewBoard(-1,id)}
+	gm.games = append(gm.games,&g)
+	gm.gamesById[id] = &g
+	return &g
 }

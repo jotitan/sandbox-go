@@ -2,24 +2,44 @@
 
 <head>
 
+    <script src="vendors/jquery/jquery-2.1.3.min.js"></script>
+
 </head>
 
 <body>
 
 <div>
 
-    <canvas width="1000" height="600" id="canvas"></canvas>
+    <canvas width="910" height="610" id="canvas"></canvas>
 
     <script>
       var canvas = document.getElementById('canvas').getContext('2d');
 
       var colors =  ["#1C2341","#E77407","#96C765","#F5F5F5"] ;
 
+c = canvas;
      function draw(caseBoard){
-        var x = (caseBoard.position%3)*300;
-        var y = Math.floor(caseBoard.position/3)*200;
-        canvas.fillStyle = "#0033CC";
+        var x = (caseBoard.position%3)*300 + 10;
+        var y = Math.floor(caseBoard.position/3)*200 + 10;
+
+        if(caseBoard.selected == true){
+            canvas.fillStyle = "#009933";
+            canvas.fillRect(x-3,y-3,296,196);
+        }
+        canvas.fillStyle = "#0099CC";
         canvas.fillRect(x,y,290,190);
+        canvas.fillStyle = "white";
+        canvas.font = "15px Arial";
+        var centerX = (290 - c.measureText(caseBoard.name).width)/2
+        canvas.fillText(caseBoard.name,x + centerX,y + 180);
+
+        canvas.beginPath();
+        canvas.strokeStyle = "white";
+        canvas.lineWidth = 3;
+        canvas.arc(x + 24,y + 175,12,0,2*Math.PI);
+        canvas.stroke();
+        canvas.closePath();
+        canvas.fillText(caseBoard.cowNumber,x + 20,y + 180);
 
         var idx = 1;
         for(var i in caseBoard.cows){
@@ -36,15 +56,67 @@
         }
      }
 
-     for(var i = 0 ; i < 9 ; i++){
-        draw({position:i,name:"Name " + i,cows:{0:1,1:2,2:0,3:1}});
+    var cases = [];
+
+     function refresh(){
+        canvas.clearRect(0,0,910,610);
+        cases.forEach(function(c){
+            draw(c);
+        });
      }
 
+    var selectedCase = null;
+    function runMouse(){
+        $('#canvas').unbind('mousemove').bind('mousemove',function(e){
+            var caseOn = Math.floor((e.offsetY-10)/200)*3 + Math.floor((e.offsetX-10)/300);
+            if(selectedCase!=null && selectedCase.position == caseOn){
+                return
+            }
+            if(selectedCase!=null){
+               selectedCase.selected = false;
+            }
+            selectedCase = cases.find(function(c){return c.position == caseOn});
+            selectedCase.selected = true;
+            refresh();
+        });
+    }
 
+    function createPartie(data){
+        cases = [];
+        data.Cases.forEach(function(c){
+            var cows = [0,0,0,0];
+            c.Cows.forEach(function(cow){cows[cow]++;});
+            cases.push({
+                position:c.Position,
+                name:c.Name,
+                cows:cows,
+                cowNumber:c.Nb
+            });
+        });
+        refresh();
+        //runMouse();
+        createSSEComm();
 
+    }
+
+    // To receive info from server
+    function createSSEComm(){
+
+    }
+
+    function loadPartie(){
+        $.ajax({
+            url:'/join',
+            success:function(data){
+                createPartie(data);
+            }
+        });
+    }
     </script>
 
 </div>
+
+<button onclick="loadPartie()">Creer partie</button>
 
 </body>
 

@@ -8,7 +8,7 @@ import (
 
 
 func main(){
-	b := longhorn.NewBoard(-1)
+	b := longhorn.NewBoard(-1,1)
 	b.GetNeighbors(2)
 	b.GetNeighbors(4)
 	b.GetNeighbors(5)

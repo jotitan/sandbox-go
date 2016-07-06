@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test calendar</title>
+    <script src="../vendors/jquery/jquery-2.1.3.min.js"></script>
+    <script src="../vendors/jquery/jquery-ui.min.js"></script>
+</head>
+<body>
+
+<style>
+    #calendar {
+    border-left:solid 1px gray;
+    }
+    #calendar > div {
+    text-align:center;
+    border-bottom:solid 1px gray;
+    border-right:solid 1px gray;
+    width:calc(20vw - 15px);
+    height:calc(20vw - 15px);
+    line-height:calc(20vw - 15px);
+    display:inline-block;
+    vertical-align:middle;
+    position:relative;
+    cursor:pointer;
+    }
+    .holiday {
+    background-color:lightgreen;
+    }
+    .holiday .day {
+    color:darkgreen;
+    }
+    .month {
+    display:inline-block;
+    width:calc(20vw - 15px);
+    font-size:3vw;
+    color:white;
+    background-color:green;
+    vertical-align:top;
+    }
+    .day {
+    font-size:10vw;
+    color:lightgray;
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    }
+    .day-info {
+    display:inline-block;
+    width:calc(20vw - 15px);
+    text-align:center;
+    font-size:3vw;
+    padding-right:1px;
+    border-bottom:solid 1px gray;
+    }
+</style>
+
+<div style="display:flex">
+    <div class="day-info" style="padding-left:1px">Lundi</div>
+    <div class="day-info">Mardi</div>
+    <div class="day-info">Mercredi</div>
+    <div class="day-info">Jeudi</div>
+    <div class="day-info">Vendredi</div>
+</div>
+<div id="calendar" style="width:100%;height:400px;overflow:auto">
+
+</div>
+
+
+<script>
+    var nb = 35;
+    var months = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Aout","Septembre","Octobre","Novembre","Décembre"];
+    var firstLine = true;
+    // Display nb x 2 days
+    for(var i = -nb ; i < nb ; i++){
+        var d = new Date();
+        d.setDate(d.getDate()+i);
+        if(d.getDay() > 0 && d.getDay() < 6){
+            // first line, maybe create empty elements
+            if(firstLine && d.getDay()!=1){
+                // Add empty element
+                for(var j = 1 ; j < d.getDay() ; j++){
+                    $('#calendar').append('<div></div>')
+                }
+            }
+            firstLine = false;
+            var month = d.getDate() == 1 ? '<span class="month">' + months[d.getMonth()] + '</span>':'';
+            var cssClass = (Math.round(Math.random()*1000))%2 == 0 ? 'class="holiday"':'';
+
+            $('#calendar').append('<div '+ cssClass +'>' + month + '<span class="day">' + d.getDate() + '</span></div>');
+        }
+    }
+
+</script>
+</body>
+</html>

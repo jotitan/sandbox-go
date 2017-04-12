@@ -1,0 +1,54 @@
+package main
+
+import (
+	tb "github.com/nsf/termbox-go"
+	"time"
+	"fmt"
+)
+
+func main() {
+	tb.Init()
+	defer tb.Close()
+
+	tb.SetInputMode(tb.InputEsc | tb.InputMouse)
+	tb.Clear(tb.ColorDefault, tb.ColorDefault)
+
+	writeBounds(45)
+	for i := 0 ; i <= 100 ; i+=10 {
+		writePercent(i,45)
+		tb.Flush()
+		time.Sleep(time.Second)
+	}
+
+	time.Sleep(time.Duration(5)*time.Second)
+}
+
+func writePercent(value, length int){
+	reelLength := (length * value ) / 100 -2
+	for i := 6 ; i < 6 + reelLength ; i++ {
+		tb.SetCell(i, 6, ' ', tb.ColorWhite, tb.ColorRed)
+	}
+	strValue := fmt.Sprintf("%d%%",value)
+	for i := 0 ; i < len(strValue) ; i++ {
+		color := tb.ColorBlack
+		if (length /2) + i <= reelLength {
+			color = tb.ColorRed
+		}
+		tb.SetCell(4 + (length /2) + i, 6, rune(strValue[i]), tb.ColorWhite, color)
+	}
+
+}
+
+func writeBounds(length int){
+	tb.SetCell(4,5,'|',tb.ColorWhite,tb.ColorBlack)
+	tb.SetCell(4,6,'|',tb.ColorWhite,tb.ColorBlack)
+	tb.SetCell(4,7,'|',tb.ColorWhite,tb.ColorBlack)
+
+	tb.SetCell(4 + length,5,'|',tb.ColorWhite,tb.ColorBlack)
+	tb.SetCell(4 + length,6,'|',tb.ColorWhite,tb.ColorBlack)
+	tb.SetCell(4 + length,7,'|',tb.ColorWhite,tb.ColorBlack)
+	for i := 5 ; i < 4+length ; i++ {
+		tb.SetCell(i, 7, '_', tb.ColorWhite, tb.ColorBlack)
+		tb.SetCell(i, 4, '_', tb.ColorWhite, tb.ColorBlack)
+	}
+}

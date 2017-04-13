@@ -8,8 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sync"
-	"music"
-	"arguments"
+	"path/filepath"
 )
 
 
@@ -103,7 +102,25 @@ func getMarker(bloc,data []byte)Marker{
 }
 
 func main(){
+
+	path := "c:\\toto\\azeoiu\\toto.qsd"
+	fmt.Println(filepath.Dir(path))
+
+	/*
+	/*fmt.Println(string(d))
+	return
+
+	t := []int{2,5,7,4}
+	pos := 0
+	logger.GetLogger().Info("=>",append(t[:pos],t[pos+1:]...))
+
+	return
 	//run()
+	data := []byte("{\"CasePos\":6,\"Player\":2,\"GameId\":1,\"Color\":\"1\",\"NextCasePos\":4}")
+	e,ee := longhorn.EventFromJSON(data)
+	logger.GetLogger().Info(e.Info,ee)
+
+	return
 
 
 	args := arguments.ParseArgs()
@@ -112,7 +129,7 @@ func main(){
 	dico := music.LoadDictionnary(args["workingFolder"])
 	dico.Browse(args["browse"])
 
-
+	   */
 
 }
 

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+
+Iframe + Drag and drop     <br/>
+
+<div style="width:700px;background-color:green;float:left">
+    <iframe src="http://lesnumeriques.com" width="600" height="400"></iframe>
+
+
+</div>
+<div style="width:700px;background-color:lightblue;float:left;margin-left:20px;height:400px" id="id2" ondragover="event.preventDefault();">
+    On glisse quelque chose ici
+
+</div>
+
+<script>
+
+      document.addEventListener('drop',function(event){
+            console.log(event.dataTransfer.getData("Text"));
+       },false);
+
+</script>
+
+</body>
+</html>

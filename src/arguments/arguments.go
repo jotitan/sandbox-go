@@ -4,6 +4,7 @@ import (
 	"strings"
 	"os"
 	"strconv"
+	"logger"
 )
 
 type Arguments struct {
@@ -56,6 +57,16 @@ func (args Arguments)GetString(argName string)string{
 	if value,ok := args.data[argName]; ok {
 		return value
 	}
+	return ""
+}
+
+func (args Arguments)GetMandatoryString(argName,errorMessage string)string{
+	if value,ok := args.data[argName]; ok {
+		return value
+	}
+	logger.GetLogger().Error(errorMessage)
+	//fmt.Println("Error",errorMessage)
+	os.Exit(1)
 	return ""
 }
 

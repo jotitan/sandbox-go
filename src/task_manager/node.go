@@ -36,10 +36,12 @@ func (n Node)Treat(idTask,typeTask string, parameters url.Values) {
 }
 
 func (n Node)resize(in,out string){
-    logger.GetLogger().Info("Resize image",in,"to",out,resize.GetResizer())
+    logger.GetLogger().Info("Resize image",in,"to",out,resize.GetResizer().ToString())
     // Create complete folder path if necessary
     os.MkdirAll(filepath.Dir(out),os.ModePerm)
-    resize.GetResizer().Resize(in ,out,0,400)
+    if err := resize.GetResizer().Resize(in ,out,0,400) ; err != nil {
+        logger.GetLogger().Error("Impossible to resize img",err)
+    }
 }
 
 func (n Node)setAckToManager(idTask string){

@@ -59,5 +59,5 @@ func (m ManagerServer)Start(){
     server.HandleFunc("/parseAndResize",m.parseAndResize)
 
     logger.GetLogger().Info("Run server on port",port)
-    logger.GetLogger().Error(http.ListenAndServe(":" + port,server))
+    logger.GetLogger().Error("End of server",http.ListenAndServe(":" + port,server))
 }

@@ -100,9 +100,8 @@ func (gor GoResizer)Resize(from,to string,width,height uint)error{
         //fmt.Println("Time read",time.Now().Sub(begin))
         img = resizeImage(img, width, height)
         //fmt.Println("Time resize",time.Now().Sub(begin))
-        saveImage(img, to)
+        return saveImage(img, to)
         //fmt.Println("Time save",time.Now().Sub(begin))
-        return nil
     }else{
         return err
     }

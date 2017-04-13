@@ -37,10 +37,9 @@ func NewManager()Manager{
     m :=  Manager{make(map[int]NodeClient),make(chan *Task,100),0,sync.Mutex{},0,NewTerm()}
     go m.CheckNodes()
 
-    update:=make(chan GaugeData)
-
-    m.term.CreateGauge(update)
-    update <- GaugeData{2,5}
+    //update:=make(chan GaugeData)
+    //m.term.CreateGauge(update)
+    //update <- GaugeData{2,5}
 
     return m
 }
@@ -120,6 +119,22 @@ type TaskControl struct{
 func (tc * TaskControl)progress()  {
     tc.treated++
     tc.update <- GaugeData{tc.treated,tc.total}
+    if tc.treated == tc.total {
+        tc.update <- GaugeData{-1,-1}
+    }
+}
+
+func (m * Manager)createTaskControl()*TaskControl{
+    // Create task control and gauge
+    taskControl := &TaskControl{update:make(chan GaugeData)}
+    m.locker.Lock()
+    m.currentIdTaskControl++
+    taskControl.id = m.currentIdTaskControl
+    taskControls[taskControl.id] = taskControl
+    m.locker.Unlock()
+
+    m.term.CreateGauge(taskControl.update)
+    return taskControl
 }
 
 // Prefix is the part to remove to transfer, like c:\, specific to mount
@@ -128,17 +143,14 @@ func (tc * TaskControl)progress()  {
 func (m * Manager)ParseAndResizeFolder(prefix ,inputFolder, outputFolder string,taskControl *TaskControl){
     if taskControl == nil {
         // Create task control and gauge
-        taskControl = &TaskControl{update:make(chan GaugeData)}
-        m.locker.Lock()
-        m.currentIdTaskControl++
-        taskControl.id = m.currentIdTaskControl
-        taskControls[taskControl.id] = taskControl
-        m.locker.Unlock()
-
-        m.term.CreateGauge(taskControl.update)
+        taskControl = m.createTaskControl()
     }
     root := strings.Replace(inputFolder,prefix,"",-1)
     output := strings.Replace(outputFolder,prefix,"",-1)
+
+    // Compare number of files into root and output
+    logger.GetLogger().Info(getFilesNumber(inputFolder),":",getFilesNumber(outputFolder))
+
     logger.GetLogger().Info("Parse folder to resize",inputFolder)
     if dir,err := os.Open(inputFolder) ; err == nil {
         // Parse all files, dig into folder, no limit
@@ -156,4 +168,15 @@ func (m * Manager)ParseAndResizeFolder(prefix ,inputFolder, outputFolder string,
             }
         }
     }
+}
+
+func getFilesNumber(folder string)int{
+    if f,err := os.Open(folder) ; err == nil {
+        defer f.Close()
+        if files,err := f.Readdirnames(-1) ; err == nil {
+            return len(files)
+        }
+    }
+    return 0
+
 }

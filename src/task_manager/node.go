@@ -30,17 +30,24 @@ func (n Node)treatTask(response http.ResponseWriter,request * http.Request) {
 func (n Node)Treat(idTask,typeTask string, parameters url.Values) {
     switch typeTask{
         case "resize":
-        n.resize(filepath.Join(n.folder,parameters.Get("in")), filepath.Join(n.folder,parameters.Get("out")))
+        n.resize(filepath.Join(n.folder,parameters.Get("in")), filepath.Join(n.folder,parameters.Get("out")),parameters.Get("force") == "true")
         n.setAckToManager(idTask)
     }
 }
 
-func (n Node)resize(in,out string){
-    logger.GetLogger().Info("Resize image",in,"to",out,resize.GetResizer().ToString())
+// Check before if image already exist, except if force = true
+func (n Node)resize(in,out string, force bool){
+    if !force {
+        if _,err := os.Open(out) ; err == nil{
+            // File already exist, don't create a new one
+            return
+        }
+    }
+    logger.GetLogger2().Info("Resize image",in,"to",out,resize.GetResizer().ToString())
     // Create complete folder path if necessary
     os.MkdirAll(filepath.Dir(out),os.ModePerm)
     if err := resize.GetResizer().Resize(in ,out,0,400) ; err != nil {
-        logger.GetLogger().Error("Impossible to resize img",err)
+        logger.GetLogger2().Error("Impossible to resize img",err)
     }
 }
 
@@ -55,8 +62,8 @@ func LaunchServer(urlManager, folder string, capacity int){
 
     server := http.NewServeMux()
     server.HandleFunc("/treat",node.treatTask)
-    // Connect to anager
-    logger.GetLogger().Info("Launch node on port",port)
+    // Connect to Manager
+    logger.GetLogger2().Info("Launch node on port",port)
     node.ConnectManager(port)
 
     http.ListenAndServe(":" + port,server)

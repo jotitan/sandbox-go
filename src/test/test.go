@@ -104,7 +104,7 @@ func getMarker(bloc,data []byte)Marker{
 func main(){
 
 	path := "c:\\toto\\azeoiu\\toto.qsd"
-	fmt.Println(filepath.Dir(path))
+	fmt.Println(filepath.Base(path))
 
 	/*
 	/*fmt.Println(string(d))

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+
+</head>
+<body>
+
+<div id="bloc" style="width:400px;height:300px">
+
+</div>
+
+     <script>
+         var ac = new AudioContext();
+         var an;
+         navigator.getUserMedia({audio:true},function(s){start(s);},function(e){console.log(e);})
+         var  bufferLength;
+         function start(stream){
+            var source = ac.createMediaStreamSource(stream);
+            console.log(source);
+            an = ac.createAnalyser();
+            an.fftSize =2048;
+            bufferLength = an.frequencyBinCount;
+            var step = 48000 / bufferLength;
+            voiceConfig = {min:80/step,max:1500/step};
+            source.connect(an);
+            create();
+            setInterval(read,1000);
+         }
+
+        var voiceConfig;
+
+         function read(){
+            var data = new Uint8Array(bufferLength);
+            //an.getByteTimeDomainData(data);
+            an.getByteFrequencyData(data);
+            var sum = 0;
+            var sumVoice = 0;
+            var max;
+            for(var i = 0 ; i < bufferLength ; i++){
+                sum+=data[i];
+                if(i >= voiceConfig.min && i<= voiceConfig.max){
+                    sumVoice+=data[i];
+                }
+                max = max == null || max < data[i] ? data[i] : max;
+            }
+            //console.log(sum,max);
+            add(sum,sumVoice);
+            //console.log(data);
+         }
+        var hc;
+        function create(){
+            hc = Highcharts.chart('bloc', {
+               title:{text:'test audio'},
+               plotOptions:{series:{}},
+               xAxis: {type: 'datetime'},
+               series:[{name:'Total',data:[]},{name:'Voice',data:[]}]
+            });
+        }
+
+        function add(value,valueVoice){
+            hc.series[0].addPoint([Date.now(),value]);
+            hc.series[1].addPoint([Date.now(),valueVoice]);
+        }
+     </script>
+</body>
+</html>

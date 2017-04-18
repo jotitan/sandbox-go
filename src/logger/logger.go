@@ -12,6 +12,61 @@ import (
 /* Manage log */
 /* If file is defined, write inside. In any case, write in console */
 
+type ILogger interface {
+	Print(message ...interface{})
+}
+
+// Default implementation with reel logger
+type FileLogger struct {
+	logger * log.Logger
+}
+
+func NewFileLogger(filename string)(FileLogger,FileLogger) {
+	if file, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm) ; err == nil {
+		return FileLogger{log.New(file, "INFO ", log.Ldate|log.Ltime|log.Lmicroseconds)},FileLogger{log.New(file, "ERROR ", log.Ldate|log.Ltime)}
+	}
+	return FileLogger{log.New(os.Stdout, "INFO ", log.Ldate|log.Ltime|log.Lmicroseconds)},FileLogger{log.New(os.Stdout, "ERROR ", log.Ldate|log.Ltime)}
+}
+
+func (dl FileLogger)Print(message ...interface{}){
+	dl.logger.Println(message...)
+}
+
+// Logger manage log production
+type ComplexLogger struct{
+	info ILogger
+	error ILogger
+	writeConsole bool
+}
+
+func InitComplexLogger(infoLogger ILogger, errorLogger ILogger, console bool)*ComplexLogger{
+	complexLogger = &ComplexLogger{infoLogger,errorLogger,console}
+	return complexLogger
+}
+
+// print messages in specific logger
+func (cl ComplexLogger) print(levelLogger ILogger,message ...interface{}) {
+	data := append([]interface{}{ getInfo()}, message...)
+	levelLogger.Print(data...)
+	if cl.writeConsole {
+		log.Println(data...)
+	}
+}
+
+func (cl ComplexLogger) Info(message ...interface{}) {
+	cl.print(cl.info,message...)
+}
+
+func (cl ComplexLogger) Error(message ...interface{}) {
+	cl.print(cl.error,message...)
+}
+
+// Fatal write fatal info into log
+func (cl ComplexLogger) Fatal(message ...interface{}) {
+	cl.print(cl.error,message...)
+	os.Exit(1)
+}
+
 // Logger manage log production
 type Logger struct{
 	info * log.Logger
@@ -68,10 +123,10 @@ func InitLogger(filename string, console bool) *Logger {
 
 // singleton of logger
 var logger *Logger
+var complexLogger *ComplexLogger
 var lock = sync.Mutex{}
 
 // GetLogger return the logger or create it if not exist
-// TODO singleton, synchronize it
 func GetLogger() *Logger {
 	if logger == nil {
 		lock.Lock()
@@ -81,4 +136,16 @@ func GetLogger() *Logger {
 		lock.Unlock()
 	}
 	return logger
+}
+
+func GetLogger2() *ComplexLogger {
+	if complexLogger == nil {
+		lock.Lock()
+		if complexLogger == nil {
+			l1,l2 := NewFileLogger("")
+			complexLogger = InitComplexLogger(l1,l2,false)
+		}
+		lock.Unlock()
+	}
+	return complexLogger
 }

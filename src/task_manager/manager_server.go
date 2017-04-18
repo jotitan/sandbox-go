@@ -47,7 +47,7 @@ func (m ManagerServer)parseAndResize(response http.ResponseWriter, request * htt
         response.Write([]byte("Impossible to launch task, parameters are missing"))
         return
     }
-    m.nodeManager.ParseAndResizeFolder(request.FormValue("prefix"),request.FormValue("folder"),request.FormValue("outputFolder"),nil)
+    m.nodeManager.ParseAndResizeFolder(request.FormValue("prefix"),request.FormValue("folder"),request.FormValue("outputFolder"),request.FormValue("first") == "true",request.FormValue("force") == "true",nil)
 }
 
 func (m ManagerServer)Start(){
@@ -58,6 +58,6 @@ func (m ManagerServer)Start(){
     server.HandleFunc("/kill",m.kill)
     server.HandleFunc("/parseAndResize",m.parseAndResize)
 
-    logger.GetLogger().Info("Run server on port",port)
-    logger.GetLogger().Error("End of server",http.ListenAndServe(":" + port,server))
+    logger.GetLogger2().Info("Run server on port",port)
+    logger.GetLogger2().Error("End of server",http.ListenAndServe(":" + port,server))
 }

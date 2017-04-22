@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Launch task</title>
+
+</head>
+<body>
+
+<h1>Convert files</h1>
+     <form method="post" id="titi" action="/parseAndResize" target="submitframe">
+        Input : <input type="text" id="idInput" name="folder" size="50"/><br/>
+        Output : <input type="text" id="idOutput" name="outputFolder" size="50"/><br/>
+        Prefix : <input type="text" id="idPrefix" name="prefix"/><br/>
+         <input type="checkbox" name="force" value="true"/> Force
+         <input type="checkbox" name="first" value="true"/> Keep root folder <br/>
+         <input type="submit" value="Launch"/>
+     </form>
+
+    <iframe name="submitframe" style="visibility:hidden" src="#" id="submitframe"></iframe>
+
+
+    <script>
+        //http://localhost:8010/parseAndResize?prefix=D:\&folder=D:\Photos\A%20TRAITER\TO_DXO\20170225_PISCINE&outputFolder=D:\test_cache&first=true
+
+        document.getElementById('idInput').addEventListener('change',guessPrefix);
+
+        function guessPrefix(){
+            var value = document.getElementById('idInput').value;
+            if(value == ""){return;}
+            document.getElementById('idPrefix').value = value.substring(0,value.indexOf('\\')+1);
+        }
+    </script>
+
+
+</body>
+</html>

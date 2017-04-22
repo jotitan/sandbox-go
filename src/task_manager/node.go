@@ -7,6 +7,9 @@ import (
     "net/url"
     "resize"
     "os"
+    "net"
+    "strings"
+    "regexp"
 )
 
 type Node struct{
@@ -16,8 +19,24 @@ type Node struct{
     capacity int
 }
 
-func (n Node)ConnectManager(port string){
-    http.Get(fmt.Sprintf("%s/join?capacity=%d&address=%s:%s",n.urlManager,n.capacity,"http://localhost",port))
+func findExposedURL()string{
+    adr,_ := net.InterfaceAddrs()
+
+    for _,a := range adr {
+        if a.String() != "0.0.0.0" && !strings.Contains(a.String(),"127.0.0.1") && strings.HasPrefix(a.String(),"192.168.0"){
+            if idx := strings.Index(a.String(),"/"); idx != -1 {
+                return a.String()[:idx]
+            }
+            return a.String()
+        }
+    }
+    return "localhost"
+}
+
+func (n Node)ConnectManager(port string)string{
+    url := findExposedURL()
+    http.Get(fmt.Sprintf("%s/join?capacity=%d&address=http://%s:%s",n.urlManager,n.capacity,url,port))
+    return url
 }
 
 func (n Node)treatTask(response http.ResponseWriter,request * http.Request) {
@@ -27,10 +46,15 @@ func (n Node)treatTask(response http.ResponseWriter,request * http.Request) {
     n.Treat(key,task,request.Form)
 }
 
+var cleanPath,_ = regexp.Compile("[/\\\\]")
+func clean(path string)string{
+    return cleanPath.ReplaceAllString(path,string(os.PathSeparator))
+}
+
 func (n Node)Treat(idTask,typeTask string, parameters url.Values) {
     switch typeTask{
         case "resize":
-        n.resize(filepath.Join(n.folder,parameters.Get("in")), filepath.Join(n.folder,parameters.Get("out")),parameters.Get("force") == "true")
+        n.resize(clean(filepath.Join(n.folder,parameters.Get("in"))), clean(filepath.Join(n.folder,parameters.Get("out")) ),parameters.Get("force") == "true")
         n.setAckToManager(idTask)
     }
 }
@@ -46,7 +70,7 @@ func (n Node)resize(in,out string, force bool){
     logger.GetLogger2().Info("Resize image",in,"to",out,resize.GetResizer().ToString())
     // Create complete folder path if necessary
     os.MkdirAll(filepath.Dir(out),os.ModePerm)
-    if err := resize.GetResizer().Resize(in ,out,0,400) ; err != nil {
+    if err := resize.GetResizer().Resize(in ,out,0,1080) ; err != nil {
         logger.GetLogger2().Error("Impossible to resize img",err)
     }
 }
@@ -63,8 +87,8 @@ func LaunchServer(urlManager, folder string, capacity int){
     server := http.NewServeMux()
     server.HandleFunc("/treat",node.treatTask)
     // Connect to Manager
-    logger.GetLogger2().Info("Launch node on port",port)
-    node.ConnectManager(port)
+    url := node.ConnectManager(port)
+    logger.GetLogger2().Info("Launch node on port",port,"with address",url)
 
     http.ListenAndServe(":" + port,server)
 }

@@ -9,6 +9,8 @@ import (
     "net/url"
     "time"
     "fmt"
+    "encoding/json"
+    "io/ioutil"
 )
 
 /* Manage nodes and task */
@@ -50,10 +52,10 @@ func NewManager()Manager{
     // Create term logger
     t1,t2 := NewTermLogger()
     logger.InitComplexLogger(t1,t2,false)
-    m :=  Manager{make(map[int]NodeClient),make(chan *Task,100),0,sync.Mutex{},0,NewTerm()}
-    //test(&m)
-    go m.CheckNodes()
+    m :=  Manager{make(map[int]NodeClient),make(chan *Task,1000),0,sync.Mutex{},0,NewTerm()}
+    m.LoadConfig()
 
+    go m.CheckNodes()
     return m
 }
 
@@ -78,8 +80,42 @@ func (m * Manager)CheckNodes(){
     m.CheckNodes()
 }
 
+//SaveConfig : save connected node to restore connection after restart. Conf is saved into json file
+func (m * Manager)SaveConfig(){
+    nodes  := make([]map[string]string,0,len(m.nodes))
+    for _,node := range m.nodes {
+        nodes = append(nodes,node.ToSave())
+    }
+    if f,err := os.OpenFile("task_manager.conf",os.O_TRUNC|os.O_CREATE|os.O_RDWR,os.ModePerm) ; err == nil {
+        defer f.Close()
+        data, _ := json.Marshal(nodes)
+        f.Write(data)
+    }
+}
+
+func (m * Manager)LoadConfig(){
+    if f,err := os.Open("task_manager.conf") ; err == nil {
+        defer f.Close()
+        data,_ := ioutil.ReadAll(f)
+        var nodes []map[string]string
+        if json.Unmarshal(data,&nodes) == nil {
+            for _,node := range nodes {
+                if capacity,err := strconv.ParseInt(node["capacity"],10,32) ; err == nil {
+                    m.AddNode(node["url"],int(capacity),true)
+                }
+            }
+        }
+    }
+    // Save the config with config complete
+    m.SaveConfig()
+}
+
 //AddNode : add a node which executes tasks.
-func (m * Manager)AddNode(url string, capacity int){
+func (m * Manager)AddNode(url string, capacity int, checkAlive bool){
+    // Check if still alive
+    if checkAlive && !Heartbeat(url){
+        return
+    }
     m.locker.Lock()
     id := m.currentId
     m.currentId++
@@ -89,6 +125,7 @@ func (m * Manager)AddNode(url string, capacity int){
     node := NewNode(id, url,capacity)
     m.nodes[id] = node
     m.term.ShowNodes(len(m.nodes))
+    m.SaveConfig()
     go node.Run(m.pendingTasks)
 }
 
@@ -99,6 +136,7 @@ func (m * Manager)RemoveNode(id int){
     logger.GetLogger2().Info("Remove node",id,":",node.url)
     // Delete node
     delete(m.nodes,id)
+    m.SaveConfig()
     m.term.ShowNodes(len(m.nodes))
 }
 
@@ -132,11 +170,14 @@ type TaskControl struct{
 }
 
 func (tc * TaskControl)progress()  {
+    defer func(){
+       if err := recover() ; err != nil {
+           logger.GetLogger2().Error(tc.treated,tc.total,tc.id,err)
+           os.Exit(1)
+       }
+    }()
     tc.treated++
     tc.update <- GaugeData{tc.treated,tc.total}
-    if tc.treated == tc.total {
-        tc.update <- GaugeData{-1,-1}
-    }
 }
 
 func (m * Manager)createTaskControl(title string)*TaskControl{
@@ -148,7 +189,7 @@ func (m * Manager)createTaskControl(title string)*TaskControl{
     taskControls[taskControl.id] = taskControl
     m.locker.Unlock()
 
-    m.term.CreateGauge(taskControl.update,title)
+    m.term.CreateGauge(taskControl.update,fmt.Sprintf("%s (%d)",title,taskControl.id))
     return taskControl
 }
 
@@ -184,7 +225,7 @@ func (m * Manager)ParseAndResizeFolder(prefix ,inputFolder, outputFolder string,
                 if strings.HasSuffix(strings.ToLower(file.Name()),"jpg") || strings.HasSuffix(strings.ToLower(file.Name()),"jpeg") {
                     if taskControl == nil {
                         // Create task control and gauge
-                        taskControl = m.createTaskControl("Resize task")
+                        taskControl = m.createTaskControl(fmt.Sprintf("Resize task : %s",root))
                     }
                     taskControl.total++
                     parameters := fmt.Sprintf("force=%v&in=%s&out=%s",force,url.QueryEscape(filepath.Join(root, file.Name())),url.QueryEscape(outputName))
@@ -193,16 +234,6 @@ func (m * Manager)ParseAndResizeFolder(prefix ,inputFolder, outputFolder string,
             }
         }
     }
-}
-
-func getFilesNumber(folder string)int{
-    if f,err := os.Open(folder) ; err == nil {
-        defer f.Close()
-        if files,err := f.Readdirnames(-1) ; err == nil {
-            return len(files)
-        }
-    }
-    return 0
 }
 
 // return number of image in folder (jpg or jpeg)

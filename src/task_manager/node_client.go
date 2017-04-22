@@ -45,6 +45,11 @@ func (n * NodeClient)Run(pendingTasks chan *Task){
     }
 }
 
+// Return elements to save
+func (n NodeClient)ToSave()map[string]string{
+    return map[string]string{"url":n.url,"capacity":fmt.Sprintf("%d",n.capacity)}
+}
+
 func (n * NodeClient)Stop(){
     //logger.GetLogger().Info("Stop tasks treatment")
     n.emergencyStop = true
@@ -68,7 +73,12 @@ func (n * NodeClient)Treat(task * Task){
 }
 
 func (n NodeClient)Heartbeat()bool{
-    if resp,err := http.Get(n.url) ; err == nil && resp != nil{
+    return Heartbeat(n.url)
+}
+
+
+func Heartbeat(url string)bool{
+    if resp,err := http.Get(url) ; err == nil && resp != nil{
         return resp.StatusCode != 200
     }
     return false

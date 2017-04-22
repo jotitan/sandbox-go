@@ -4,13 +4,12 @@ import (
     tb "github.com/nsf/termbox-go"
     "fmt"
     "syscall"
-    "logger"
     "time"
     "sync"
 )
 
 type histo struct {
-    tab [][]interface{}
+    tab []line
 }
 
 type TermLogger struct {
@@ -44,24 +43,29 @@ func (st * SlotTasks)release(id int){
     st.slots <- id
 }
 
+type line struct {
+    typeLog string
+    date string
+    messages []interface{}
+}
 
 func NewTermLogger()(TermLogger,TermLogger) {
-    return TermLogger{"INFO : ",4,50,&histo{make([][]interface{},4)}},TermLogger{"ERROR : ",4,50,&histo{make([][]interface{},4)}}
+    cache := &histo{make([]line,4)}
+    return TermLogger{"INFO  : ",4,50,cache},TermLogger{"ERROR : ",4,50,cache}
 }
 
 func (tl TermLogger)Print(messages ...interface{}){
-    tl.histo.tab = append(tl.histo.tab[1:],messages)
+    tl.histo.tab = append(tl.histo.tab[1:],line{tl.typeLog,time.Now().Format("15:04:05.000"),messages})
     for i := tl.logPosition ; i < tl.logPosition + tl.logLength ; i++ {
         clearLine(i)
     }
     for i,line := range tl.histo.tab{
-        if len(line) >0 {
-            writeValue(tl.typeLog, 4, tl.logPosition+i)
-            pos := 4 + len(tl.typeLog)
-            date := time.Now().Format("15:04:05.000")
-            writeValue(date, pos, tl.logPosition+i)
-            pos+=1 + len(date)
-            for _, m := range line {
+        if len(line.messages) >0 {
+            writeValue(line.typeLog, 4, tl.logPosition+i)
+            pos := 4 + len(line.typeLog)
+            writeValue(line.date, pos, tl.logPosition+i)
+            pos+=1 + len(line.date)
+            for _, m := range line.messages {
                 message := fmt.Sprintf("%v", m)
                 writeValue(message, pos, tl.logPosition+i)
                 pos+=len(message)+1
@@ -78,7 +82,6 @@ type Term struct {
 
 func NewTerm()Term{
     tb.Init()
-    //defer tb.Close()
 
     tb.SetInputMode(tb.InputEsc | tb.InputMouse)
     tb.Clear(tb.ColorDefault, tb.ColorDefault)
@@ -106,16 +109,13 @@ func (t Term)ShowNodes(nbNodes int){
 
 func (t Term)CreateGauge(update chan GaugeData, title string) {
     slot := t.slotManager.acquire()
-    g := Gauge{(slot+1) * 5,40}
+    g := Gauge{(slot+1) * 5+1,40}
     g.writeBounds()
-    writeValue(title,60,(slot+1) * 5 + 1)
+    writeValue(title,60,(slot+1) * 5 + 2)
     refresh()
     go func() {
         for {
             gd := <-update
-            if gd.total == -1 && gd.current == -1 {
-                break
-            }
             percent := 0
             if gd.total > 0 {
                 percent = (gd.current * 100) / gd.total
@@ -123,11 +123,15 @@ func (t Term)CreateGauge(update chan GaugeData, title string) {
             g.writePercent(percent)
             g.writeValue(fmt.Sprintf("%d/%d",gd.current,gd.total))
             refresh()
+            // end case
+            if gd.total == gd.current {
+                break
+            }
         }
         close(update)
-        logger.GetLogger2().Info("End of batch")
+
         // Clear gauge
-        g.clear()
+        g.clear(len(title))
         t.slotManager.release(slot)
     }()
 }
@@ -142,8 +146,9 @@ type Gauge struct{
     length int
 }
 
-func (g Gauge)clear(){
-    for x:= 5 + g.length ; x <=80 ; x++ {
+func (g Gauge)clear(lengthTitle int){
+    // clear title
+    for x:= 5 + g.length ; x <=5 + g.length + lengthTitle ; x++ {
         tb.SetCell(x, g.y+1, ' ', tb.ColorBlack, tb.ColorBlack)
     }
     for line := g.y-1 ; line <=g.y+3 ; line++ {

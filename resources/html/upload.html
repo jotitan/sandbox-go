@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <script src="../vendors/jquery/jquery-2.1.3.min.js"></script>
+    <style>
+        #idUploadDiv {
+        border:dashed 3px darkgrey;
+        }
+
+        #idUploadDiv.drop {
+        border:dashed 3px black;
+        }
+    </style>
+</head>
+<body>
+
+
+<div style="width:500px;height:300px;float:left;padding:10px" id="idUploadDiv">Upload here</div>
+<div style="width:500px;height:300px;float:left;padding:5px;background-color:#EEEEEE" id="idFolder"></div>
+
+<div style="clear:both"></div>
+<button onclick="launch()">Launch import</button>
+<button onclick="cancel()">Cancel</button>
+
+<script>
+     var uploadDiv = document.getElementById('idUploadDiv');
+     uploadDiv.ondragover = function(e){
+        this.className = 'drop';
+        e.preventDefault();
+     };
+
+     uploadDiv.ondrop = function (e) {
+        e.preventDefault();
+        for(var i = 0 ; i < e.dataTransfer.files.length ;i++){
+           sendFile(e.dataTransfer.files[i]);
+        };
+        this.className = '';
+        return false;
+    };
+
+function sendFile(file){
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST','/upload');
+    xhr.onload = function(){
+        list();
+    };
+
+    xhr.upload.onprogress = function(e){};
+    var formdata = new FormData();
+    formdata.append('myfile',file);
+    xhr.send(formdata);
+}
+
+function launch(){
+    // Disable button
+    $('button').attr('disabled','disabled');
+    $.ajax({url:'/launch',success:function(){list();}});
+}
+
+function list(){
+    $('button').removeAttr('disabled');
+    $.ajax({
+        url:'/list',
+        success:function(data){
+            $('#idFolder').empty();
+            for(var i in data){
+                $('#idFolder').append('<div>' + data[i] + '</div>');
+            }
+        }
+    });
+}
+
+function cancel(){
+    $.ajax({
+        url:'/cancel',
+        success:function(){
+            list();
+        }
+    });
+}
+
+list();
+
+</script>
+
+</body>
+</html>

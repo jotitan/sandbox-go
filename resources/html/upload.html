@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Upload file and show server log</title>
 
     <script src="../vendors/jquery/jquery-2.1.3.min.js"></script>
     <style>
@@ -13,17 +13,37 @@
         #idUploadDiv.drop {
         border:dashed 3px black;
         }
+
+        #idFolder{
+            border : solid 2px black;
+            margin-left:20px;
+        }
+
+
+
     </style>
 </head>
 <body>
 
+<fieldset id="uploadBox">
+    <legend>Upload files</legend>
+    <div style="width:45%;height:150px;float:left;text-align:center;padding:5px" id="idUploadDiv">Upload here</div>
+    <div style="width:45%;height:150px;float:right;padding:5px;background-color:#EEEEEE" id="idFolder"></div>
+    <div style="clear:both"></div>
+    <button onclick="launch()">Import</button>
+    <button onclick="cancel()">Cancel</button>
+</fieldset>
 
-<div style="width:500px;height:300px;float:left;padding:10px" id="idUploadDiv">Upload here</div>
-<div style="width:500px;height:300px;float:left;padding:5px;background-color:#EEEEEE" id="idFolder"></div>
+<fieldset>
+    <legend>Log server</legend>
+    <div style="height:400px;overflow:auto;font-size:10px;" id="log"> </div>
+    <button onclick="Log.start()">Show</button>
+    <button onclick="Log.clean()">Clean</button>
+</fieldset>
 
-<div style="clear:both"></div>
-<button onclick="launch()">Launch import</button>
-<button onclick="cancel()">Cancel</button>
+
+
+
 
 <script>
      var uploadDiv = document.getElementById('idUploadDiv');
@@ -56,7 +76,7 @@ function sendFile(file){
 
 function launch(){
     // Disable button
-    $('button').attr('disabled','disabled');
+    $('button','#uploadBox').attr('disabled','disabled');
     $.ajax({url:'/launch',success:function(){list();}});
 }
 
@@ -83,6 +103,36 @@ function cancel(){
 }
 
 list();
+
+
+// Log reader
+var Log = {
+    panel:$('#log'),
+    running:false,
+    start:function(){
+        if(this.running){return;}
+        var es = new EventSource("/showLog")
+        var _self = this;
+        es.onmessage = function(event){
+            _self.running = true;
+            _self.show(event.data);
+        }
+
+    },
+    show:function(message){
+        if(message.indexOf("_id_log_") == 0){
+           this.logId = message.replace("_id_log_","");
+       }else{
+           var div = $('<div></div>');
+           div.html(message);
+           this.panel.append(div);
+           this.panel.scrollTop(this.panel.prop('scrollHeight'));
+       }
+    },
+    clean:function(){
+        this.panel.empty();
+    },
+}
 
 </script>
 

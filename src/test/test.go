@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sync"
-	"path/filepath"
+	"encoding/json"
 )
 
 
@@ -103,8 +103,10 @@ func getMarker(bloc,data []byte)Marker{
 
 func main(){
 
-	path := "c:\\toto\\azeoiu\\toto.qsd"
-	fmt.Println(filepath.Base(path))
+	t := map[string]string{"value":"value1","field":"field2"}
+	fmt.Println(t)
+	data,_ := json.Marshal(t)
+	fmt.Println(string(data))
 
 	/*
 	/*fmt.Println(string(d))

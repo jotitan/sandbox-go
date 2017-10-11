@@ -6,6 +6,7 @@ import (
     "logger"
 )
 
+/* Launch a node server used to treat tasks sended by task manager */
 func main(){
     if len(os.Args) != 4 {
         logger.GetLogger().Info("Need following parameters : urlManager prefix (d:\\) capacity")
@@ -17,5 +18,5 @@ func main(){
     if value,err := strconv.ParseInt(os.Args[3],10,32) ; err == nil {
         capacity = int(value)
     }
-    task_manager.LaunchServer(urlManager, prefix, capacity)
+    task_manager.LaunchNodeServer(urlManager, prefix, capacity)
 }

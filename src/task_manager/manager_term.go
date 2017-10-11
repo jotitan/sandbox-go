@@ -12,6 +12,7 @@ type histo struct {
     tab []line
 }
 
+//TermLogger is a terminal implementation of logger
 type TermLogger struct {
     typeLog string
     logLength int

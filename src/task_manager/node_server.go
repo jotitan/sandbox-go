@@ -79,8 +79,9 @@ func (n Node)setAckToManager(idTask string){
     http.Get(fmt.Sprintf("%s/%s?id=%s",n.urlManager,"result",idTask))
 }
 
+//LaunchNodeServer
 // capacity : treatment capacity of node
-func LaunchServer(urlManager, folder string, capacity int){
+func LaunchNodeServer(urlManager, folder string, capacity int){
     node := Node{urlManager,folder,capacity}
     port := "8012"
 

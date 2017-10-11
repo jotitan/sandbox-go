@@ -5,7 +5,7 @@ import (
     "logger"
 )
 
-
+//NodeClient connection to a node treatment
 type NodeClient struct{
     // local id of node
     localId int

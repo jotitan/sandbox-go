@@ -1,0 +1,77 @@
+package main
+
+import (
+	"logger"
+	"net/http"
+	"strconv"
+	"fmt"
+	"sync/atomic"
+	"time"
+	"math/rand"
+)
+
+type MonitorThroughput struct {
+   counter *int32
+   // Parallel limit
+   throughput int32
+}
+
+func (mt MonitorThroughput)tick()bool{
+	if *mt.counter > mt.throughput {
+		return true
+	}
+	atomic.AddInt32(mt.counter,1)
+	return false
+}
+
+func (mt MonitorThroughput)end(){
+	atomic.AddInt32(mt.counter,-1)
+}
+
+func createMonitor(throughput int32)MonitorThroughput {
+	counter := int32(0)
+	return MonitorThroughput{&counter,throughput}
+}
+
+var monitor = createMonitor(20)
+
+func waitRandomTime()int32{
+	waitTime := 20 + rand.Int31()%800
+	time.Sleep(time.Duration(waitTime) * time.Millisecond)
+	return waitTime
+}
+
+func setHeader(w http.ResponseWriter){
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+}
+
+func Request(response http.ResponseWriter,request *http.Request){
+	setHeader(response)
+	if value,err := strconv.ParseInt(request.FormValue("value"),10,32) ; err == nil {
+		if monitor.tick() {
+			logger.GetLogger().Error("Too many requests :",*monitor.counter)
+			http.Error(response,"Too many requests, slow down",http.StatusTooManyRequests)
+		}else {
+			// Wait some random time
+			wait := waitRandomTime()
+			response.Write([]byte(fmt.Sprintf("{\"value\":%d,\"wait\":%d}",value*2,wait)))
+			monitor.end()
+		}
+	}else{
+		http.Error(response,"Badd request, set parameter value as integer",http.StatusBadRequest)
+	}
+}
+
+func createServer(){
+	server := http.NewServeMux()
+	server.HandleFunc("/request",Request)
+	http.ListenAndServe(":8081",server)
+}
+
+// Launch server
+func main(){
+	logger.GetLogger().Info("Launch server on port 8081, you can request me !")
+	createServer()
+}
+

@@ -1,0 +1,69 @@
+package main
+
+import "net/http"
+import "net/http/httputil"
+import "net/url"
+import "fmt"
+import "strings"
+import "os"
+import "io/ioutil"
+import "encoding/json"
+
+var rep *httputil.ReverseProxy
+
+var proxyRoutes map[string]*httputil.ReverseProxy
+
+// Structure of conf file : Json like {[{route:,host:},{route:,host:}]}
+
+func main(){
+	if len(os.Args) != 3 {
+		fmt.Println("Need parameters <port> <conf>")
+		os.Exit(1)
+	}
+	routes := extractRoutes(os.Args[2])
+	proxyRoutes = make(map[string]*httputil.ReverseProxy,len(routes))
+	for route,host := range routes {
+		u,_ := url.Parse(host)
+		proxyRoutes[route] = httputil.NewSingleHostReverseProxy(u)
+	}
+
+	server := http.NewServeMux()
+	server.HandleFunc("/",routing)
+	port := os.Args[1]
+	fmt.Println("Start proxy on port",port,"with",len(routes),"routes")
+	http.ListenAndServe(":" + port,server)
+	
+}
+
+func extractRoutes(path string)map[string]string{
+	routes := make(map[string]string,0)
+	if data,err := ioutil.ReadFile(path) ; err == nil {
+		rawRoutes := make(map[string]interface{},0)
+		json.Unmarshal(data,&rawRoutes)
+		for _,route := range rawRoutes["routes"].([]interface{}) {
+			routeDetail := route.(map[string]interface{})
+			routes[routeDetail["route"].(string)] = routeDetail["host"].(string)
+		}
+	}
+	return routes
+}
+
+func routing(w http.ResponseWriter, r * http.Request){
+	
+	if pos := strings.Index(r.URL.Path[1:],"/") ; pos != -1 {
+		subPath := r.URL.Path[1:pos+1]
+		if route,exist := proxyRoutes[subPath] ; exist {
+				// Redirect
+				r.URL.Path = r.URL.Path[1+pos:]
+				route.ServeHTTP(w,r)
+		}else{
+			fmt.Println("Unknown route",subPath,"=>",r.URL.Path)
+			w.Write([]byte("Unknown route"))
+		}
+	}else{
+			fmt.Println("No route",r.URL.Path)
+			w.Write([]byte("No route"))
+	}
+	
+}
+

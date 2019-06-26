@@ -32,7 +32,7 @@ func main(){
 	port := os.Args[1]
 	fmt.Println("Start proxy on port",port,"with",len(routes),"routes")
 	http.ListenAndServe(":" + port,server)
-	
+
 }
 
 func extractRoutes(path string)map[string]string{
@@ -48,22 +48,30 @@ func extractRoutes(path string)map[string]string{
 	return routes
 }
 
-func routing(w http.ResponseWriter, r * http.Request){
-	
-	if pos := strings.Index(r.URL.Path[1:],"/") ; pos != -1 {
-		subPath := r.URL.Path[1:pos+1]
-		if route,exist := proxyRoutes[subPath] ; exist {
-				// Redirect
-				r.URL.Path = r.URL.Path[1+pos:]
-				route.ServeHTTP(w,r)
-		}else{
-			fmt.Println("Unknown route",subPath,"=>",r.URL.Path)
+func routing(w http.ResponseWriter, r * http.Request) {
+	if pos := strings.Index(r.URL.Path[1:], "/"); pos != -1 {
+		subPath := r.URL.Path[1 : pos+1]
+		if route, exist := proxyRoutes[subPath]; exist {
+			// Redirect
+			//fmt.Println(r.URL.Path[1+pos:])
+			serve(w,r,subPath,r.URL.Path[1+pos:],route)
+		} else {
+			fmt.Println("Unknown route", subPath, "=>", r.URL.Path)
 			w.Write([]byte("Unknown route"))
 		}
-	}else{
-			fmt.Println("No route",r.URL.Path)
+	} else {
+		if route, exist := proxyRoutes[r.URL.Path[1:]]; exist {
+			serve(w,r,r.URL.Path[1:],"/",route)
+		} else{
+			fmt.Println("No route", r.URL.Path)
 			w.Write([]byte("No route"))
+		}
 	}
-	
+}
+
+func serve(w http.ResponseWriter, r * http.Request, routeName, path string,rp * httputil.ReverseProxy){
+	r.URL.Path = path
+	r.Header.Set("proxy-redirect",routeName+ "/")
+	rp.ServeHTTP(w, r)
 }
 

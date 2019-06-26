@@ -19,7 +19,8 @@ func main(){
 	folder := os.Args[1]
 	// Prefix to remove in map
 	prefix = os.Args[2]
-	removeFirstLevel := len(os.Args) == 4 && os.Args[3] == "true"
+	port := os.Args[3]
+	removeFirstLevel := len(os.Args) == 5 && os.Args[4] == "true"
 	foldersMap = getPaths(folder,removeFirstLevel)
 	
 	server := http.NewServeMux()
@@ -27,8 +28,8 @@ func main(){
 	server.HandleFunc("/folders",func(w http.ResponseWriter, r * http.Request){w.Write(getFoldersAsString())})
 	server.HandleFunc("/folder",getFolder)	
 
-	fmt.Println("Started server with",len(foldersMap),"folders")
-	http.ListenAndServe(":9010",server)
+	fmt.Println("Started server with",len(foldersMap),"folders on port",port)
+	http.ListenAndServe(":" + port,server)
 }
 
 func getFoldersAsString()[]byte{

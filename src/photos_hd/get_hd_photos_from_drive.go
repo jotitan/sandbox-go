@@ -1,34 +1,36 @@
 package main
 
-import "os"
-import "io"
-import "fmt"
-import "path/filepath"
-import "net/http"
-import "strings"
-import "regexp"
-import "encoding/json"
+import (
+	"log"
+	"os"
+	"io"
+	"path/filepath"
+	"net/http"
+	"strings"
+	"regexp"
+	"encoding/json"
+)
 
-// For each path, store the list of photos name
-// Use a short path to simplify search
+// Stocke pour chaque chemins la liste des noms de photo
+// On utilise une version courte du path pour simplifier recherch
 var foldersMap map[string][]string
 var prefix string
 
 func main(){
-	fmt.Println("Started service, parse folders")
+	log.Println("Started service, parse folders")
 	folder := os.Args[1]
 	// Prefix to remove in map
 	prefix = os.Args[2]
 	port := os.Args[3]
 	removeFirstLevel := len(os.Args) == 5 && os.Args[4] == "true"
 	foldersMap = getPaths(folder,removeFirstLevel)
-	
+
 	server := http.NewServeMux()
 	server.HandleFunc("/photo",getPhoto)
 	server.HandleFunc("/folders",func(w http.ResponseWriter, r * http.Request){w.Write(getFoldersAsString())})
-	server.HandleFunc("/folder",getFolder)	
+	server.HandleFunc("/folder",getFolder)
 
-	fmt.Println("Started server with",len(foldersMap),"folders on port",port)
+	log.Println("Started server with",len(foldersMap),"folders on port",port)
 	http.ListenAndServe(":" + port,server)
 }
 
@@ -41,30 +43,30 @@ func getFoldersAsString()[]byte{
 	return data
 }
 
-// Send photos of a folder
+// Renvoie les photos du repertoire
 func getFolder(w http.ResponseWriter, r * http.Request){
-	
+
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-type","application/json")
-	
+
 	if photos,exist := foldersMap[r.FormValue("folder")] ; exist {
-		fmt.Println("Get info on folder",r.FormValue("folder"),"and found",len(photos),"photos")
+		log.Println("Get info on folder",r.FormValue("folder"),"and found",len(photos),"photos")
 		data,_ := json.Marshal(photos)
 		w.Write(data)
 	}else{
-			fmt.Println("Error, impossible to found folder with name",r.FormValue("folder"))
+		log.Println("Error, impossible to found folder with name",r.FormValue("folder"))
 	}
-	
+
 }
 
-// For returning a photo, check :
-//1) folder belongs to set
-//2) no hacking characters exists in name like .., / or \
-//3) add itself .jpg to avoid bad extensions search
+// Renvoie une photo, verifie :
+//1) que le repertoire est dans le set
+//2) qu'aucun caractere permettant de hacker n'est present : .., /, \
+//3) on ajoute .jpg a la fin
 func getPhoto(w http.ResponseWriter,r * http.Request){
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-type","application/json")
-	
+
 	folder := r.FormValue("folder")
 	name := r.FormValue("name")
 	if suffix := strings.Index(name,".jpg") ; suffix != -1 {
@@ -78,15 +80,15 @@ func getPhoto(w http.ResponseWriter,r * http.Request){
 	if _,exist := foldersMap[folder] ; !exist {
 		http.Error(w,"Access denied",403)
 		return
-	} 
+	}
 	reg,_ := regexp.Compile("([/\\\\])|(\\.\\.)")
 	if len(reg.FindAllString(name,-1)) != 0 {
 		http.Error(w,"Access denied strictly",403)
 		return
 	}
-	// Check if photo exist in hd folder
+	// Test si la photo existe dans le repertoire hd
 	filename := filepath.Join(prefix,folder,"hd",name+".jpg")
-	fmt.Println("Show picture",filename)
+	log.Println("Show picture",filename)
 	if img,err := os.Open(filename) ; err== nil {
 		defer img.Close()
 		w.Header().Set("Content-type","image/jpeg")
@@ -96,11 +98,23 @@ func getPhoto(w http.ResponseWriter,r * http.Request){
 	}
 }
 
-// Return all valids paths with hd folder exist
+func getFolders(w http.ResponseWriter, r * http.Request){
+	//w.Write([]byte(strings.Join(folders,",")))
+}
+
+func listToSet(list []string)map[string]struct{}{
+	set := make(map[string]struct{},len(list))
+	for _,value := range list {
+		set[value] = struct{}{}
+	}
+	return set
+}
+
+// Renvoie tous les chemins ou un repertoire hd est present
 func getPaths(folder string, removeFirstLevel bool)map[string][]string{
-	// search if folder contains an hd folder
+	// Cherche si un repertoire hd est present
 	if _,err := os.Stat(filepath.Join(folder,"hd")) ; err == nil || !os.IsNotExist(err) {
-		// All pictures of folder
+		// Liste les photos du repertoire
 		if dirPhotos, err2 := os.Open(filepath.Join(folder,"hd")) ; err2 == nil {
 			if files,err3 := dirPhotos.Readdirnames(-1) ; err3 == nil {
 				photos := make([]string,0,len(files))
@@ -110,19 +124,19 @@ func getPaths(folder string, removeFirstLevel bool)map[string][]string{
 					}
 				}
 				if len(photos) > 0 {
-					// Remove prefix and replace \ by / to uniformize
+					// Supprime le prefixe et remplace \ par /
 					shortFolder := strings.Replace(strings.Replace(folder,prefix,"",-1),"\\","/",-1)
 					if removeFirstLevel {
 						shortFolder = shortFolder[strings.Index(shortFolder,"/")+1:]
 					}
-					fmt.Println(folder,"=>",shortFolder)					
+					log.Println(folder,"=>",shortFolder)
 					return map[string][]string{shortFolder:photos}
 				}
 			}
 		}
 		return make(map[string][]string)
 	}
-	// Browse all folders and relaunch on sons
+	// Parcourt les repertoires et relance sur les enfants
 	results := make(map[string][]string,0)
 	if dir,err := os.Open(folder) ; err == nil {
 		if files,er := dir.Readdir(-1) ; er == nil {

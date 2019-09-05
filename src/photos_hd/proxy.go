@@ -3,11 +3,11 @@ package main
 import "net/http"
 import "net/http/httputil"
 import "net/url"
-import "fmt"
 import "strings"
 import "os"
 import "io/ioutil"
 import "encoding/json"
+import "log"
 
 var rep *httputil.ReverseProxy
 
@@ -17,7 +17,7 @@ var proxyRoutes map[string]*httputil.ReverseProxy
 
 func main(){
 	if len(os.Args) != 3 {
-		fmt.Println("Need parameters <port> <conf>")
+		log.Println("Need parameters <port> <conf>")
 		os.Exit(1)
 	}
 	routes := extractRoutes(os.Args[2])
@@ -30,7 +30,7 @@ func main(){
 	server := http.NewServeMux()
 	server.HandleFunc("/",routing)
 	port := os.Args[1]
-	fmt.Println("Start proxy on port",port,"with",len(routes),"routes")
+	log.Println("Start proxy on port",port,"with",len(routes),"routes")
 	http.ListenAndServe(":" + port,server)
 
 }
@@ -56,14 +56,14 @@ func routing(w http.ResponseWriter, r * http.Request) {
 			//fmt.Println(r.URL.Path[1+pos:])
 			serve(w,r,subPath,r.URL.Path[1+pos:],route)
 		} else {
-			fmt.Println("Unknown route", subPath, "=>", r.URL.Path)
+			log.Println("Unknown route", subPath, "=>", r.URL.Path)
 			w.Write([]byte("Unknown route"))
 		}
 	} else {
 		if route, exist := proxyRoutes[r.URL.Path[1:]]; exist {
 			serve(w,r,r.URL.Path[1:],"/",route)
 		} else{
-			fmt.Println("No route", r.URL.Path)
+			log.Println("No route", r.URL.Path)
 			w.Write([]byte("No route"))
 		}
 	}

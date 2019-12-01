@@ -33,7 +33,10 @@ func searchGreat(pow10, current int64, results *int64)bool{
 }
 
 func isPremier(value int64)bool{
-	for i := int64(2) ; i < int64(math.Sqrt(float64(value)))+1 ; i++ {
+	if value%2 == 0 {
+		return false
+	}
+	for i := int64(3) ; i < int64(math.Sqrt(float64(value)))+2 ; i+=2 {
 		if value % i == 0 {
 			return false
 		}

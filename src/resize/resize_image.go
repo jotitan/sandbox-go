@@ -1,17 +1,18 @@
 package resize
+
 import (
 	"errors"
-	"image"
+	"fmt"
 	resizer "github.com/nfnt/resize"
+	"image"
 	"image/jpeg"
 	"image/png"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
-	"strings"
-	"path/filepath"
-	"fmt"
-	"os/exec"
 )
 
 type Request struct {
@@ -97,7 +98,13 @@ func (gor GoResizer)ToString()string{
 }
 
 func (gor GoResizer)Resize(from,to string,width,height uint)(error,uint,uint){
-	//begin := time.Now()
+	// Check if image already exist
+	if f,err := os.Open(to) ; err == nil {
+		// Already exist, close and return, open the light one to get size ? Return 0,0 for now
+		f.Close()
+		return nil,0,0
+	}
+
 	if img,err := openImage(from) ; err == nil {
 		//fmt.Println("Time read",time.Now().Sub(begin))
 		imgResize,w,h := resizeImage(img, width, height)

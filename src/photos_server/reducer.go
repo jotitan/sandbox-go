@@ -3,6 +3,7 @@ package photos_server
 import (
 	"errors"
 	"fmt"
+	"logger"
 	"os"
 	"path/filepath"
 	"resize"
@@ -63,7 +64,10 @@ func (r Reducer) resizeMultiformat(imageToResize ImageToResize,folder string){
 	from := imageToResize.path
 	for i, size := range r.sizes {
 		to := r.createJpegFile(folder,imageToResize.path,size)
-		_,width,height := r.resize.Resize(from, to, 0, size)
+		err,width,height := r.resize.Resize(from, to, 0, size)
+		if err == nil {
+			logger.GetLogger2().Info("Create resize image",to)
+		}
 		if i == len(r.sizes) -1 {
 			// Set ratio on node
 			imageToResize.node.Height = int(height)

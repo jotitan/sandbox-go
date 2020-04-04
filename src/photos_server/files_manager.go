@@ -218,6 +218,7 @@ func (fm * foldersManager)AddFolder(folderPath string){
 
 func (fm * foldersManager)load(){
 	if f,err := os.Open("save-images.json") ; err == nil {
+		defer f.Close()
 		data,_ := ioutil.ReadAll(f)
 		folders := make(map[string]*Node,0)
 		json.Unmarshal(data,&folders)
@@ -249,6 +250,7 @@ func (fm * foldersManager)launchImageResize(folder *Node, rootFolder string){
 //Analyse a cache and detect all files of types images
 func (fm foldersManager)Analyse(rootFolder,path string)Files{
 	if file,err := os.Open(path) ; err == nil{
+		defer file.Close()
 		// If cache, create cache and go deep
 		if stat,errStat := file.Stat() ; errStat == nil {
 			if stat.IsDir() {

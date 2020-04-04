@@ -80,6 +80,7 @@ func (r Reducer)createPathInCache(path string)error{
 		// Create folder
 		return os.MkdirAll(path,os.ModePerm)
 	}else{
+		defer f.Close()
 		if stat,err := f.Stat() ; err != nil || !stat.IsDir(){
 			return errors.New("Impossible to use this folder : "  + path)
 		}

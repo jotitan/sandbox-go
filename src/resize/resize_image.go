@@ -1,20 +1,22 @@
 package resize
 import (
-    "image"
-    resizer "github.com/nfnt/resize"
-    "image/jpeg"
-    "os"
-    "sync"
-    "time"
-    "strings"
-    "path/filepath"
-    "fmt"
-    "os/exec"
+	"errors"
+	"image"
+	resizer "github.com/nfnt/resize"
+	"image/jpeg"
+	"image/png"
+	"os"
+	"sync"
+	"time"
+	"strings"
+	"path/filepath"
+	"fmt"
+	"os/exec"
 )
 
 type Request struct {
-    from string
-    to string
+	from string
+	to string
 }
 
 func GetPhotosToTreat(from,to string)[]Request{
@@ -38,103 +40,119 @@ func GetPhotosToTreat(from,to string)[]Request{
 }
 
 func ResizeMany(from, to string, width,height uint){
-    counter := sync.WaitGroup{}
-    begin := time.Now()
-    gor := GetResizer()
+	counter := sync.WaitGroup{}
+	begin := time.Now()
+	gor := GetResizer()
 
-    requests := GetPhotosToTreat(from,to)
-    for _,r := range requests {
-        counter.Add(1)
-        go func(req Request) {
-            if err := gor.Resize(req.from, req.to, width,height); err == nil {
-                fmt.Println("Img resized", req.to)
-            }else {
-                fmt.Println("Impossible",err)
-            }
-            counter.Done()
-        }(r)
-    }
-    counter.Wait()
-    fmt.Println("Done",time.Now().Sub(begin))
+	requests := GetPhotosToTreat(from,to)
+	for _,r := range requests {
+		counter.Add(1)
+		go func(req Request) {
+			if err,_,_ := gor.Resize(req.from, req.to, width,height); err == nil {
+				fmt.Println("Img resized", req.to)
+			}else {
+				fmt.Println("Impossible",err)
+			}
+			counter.Done()
+		}(r)
+	}
+	counter.Wait()
+	fmt.Println("Done",time.Now().Sub(begin))
 }
 
 type Resizer interface{
-    Resize(from,to string,width,height uint)error
-    ToString()string
+	Resize(from,to string,width,height uint)(error,uint,uint)
+	ToString()string
 }
 
 // GetResizer return a resizer acoording to context
 func GetResizer()Resizer{
-    // CHeck if convert (imagemagick) is present
-    if result,err := exec.Command("convert","-version") .Output() ; err == nil {
-        if strings.Contains(string(result),"ImageMagick") {
-            return ImageMagickResizer{}
-        }
-    }
-    return GoResizer{}
+	// CHeck if convert (imagemagick) is present
+	if result,err := exec.Command("convert","-version") .Output() ; err == nil {
+		if strings.Contains(string(result),"ImageMagick") {
+			return ImageMagickResizer{}
+		}
+	}
+	return GoResizer{}
 }
 
 // ImageMagickResizer use image magick (convert command) to compress
 type ImageMagickResizer struct{}
 
 func (gor ImageMagickResizer)ToString()string{
-    return "ImageMagick"
+	return "ImageMagick"
 }
 
-func (gor ImageMagickResizer)Resize(from,to string,width,height uint)error{
-    cmd := exec.Command("convert",from,"-resize",fmt.Sprintf("x%d",height),"-auto-orient","-interpolate","bicubic","-quality","80",to)
-    _,err := cmd.Output()
+func (gor ImageMagickResizer)Resize(from,to string,width,height uint)(error,uint,uint){
+	cmd := exec.Command("convert",from,"-resize",fmt.Sprintf("x%d",height),"-auto-orient","-interpolate","bicubic","-quality","80",to)
+	_,err := cmd.Output()
 
-    return err
+	return err,0,0
 }
 
 type GoResizer struct{}
 
 func (gor GoResizer)ToString()string{
-    return "Go Resizer"
+	return "Go Resizer"
 }
 
-func (gor GoResizer)Resize(from,to string,width,height uint)error{
-    //begin := time.Now()
-    if img,err := openImage(from) ; err == nil {
-        //fmt.Println("Time read",time.Now().Sub(begin))
-        img = resizeImage(img, width, height)
-        //fmt.Println("Time resize",time.Now().Sub(begin))
-        return saveImage(img, to)
-        //fmt.Println("Time save",time.Now().Sub(begin))
-    }else{
-        return err
-    }
+func (gor GoResizer)Resize(from,to string,width,height uint)(error,uint,uint){
+	//begin := time.Now()
+	if img,err := openImage(from) ; err == nil {
+		//fmt.Println("Time read",time.Now().Sub(begin))
+		imgResize,w,h := resizeImage(img, width, height)
+		//fmt.Println("Time resize",time.Now().Sub(begin))
+		return saveImage(imgResize, to),w,h
+		//fmt.Println("Time save",time.Now().Sub(begin))
+	}else{
+		return err,0,0
+	}
 }
 
 func saveImage(img image.Image, path string)error{
-    if f,err := os.OpenFile(path,os.O_CREATE|os.O_TRUNC,os.ModePerm) ; err == nil{
-        jpeg.Encode(f,img,&(jpeg.Options{75}))
+	if f,err := os.OpenFile(path,os.O_CREATE|os.O_TRUNC,os.ModePerm) ; err == nil{
+		jpeg.Encode(f,img,&(jpeg.Options{75}))
 		f.Close()
-        return nil
-    }else{
-        return err
-    }
+		return nil
+	}else{
+		return err
+	}
 }
 
 func openImage(path string)(image.Image,error) {
-    if f,err := os.Open(path) ; err == nil{
-        defer f.Close()
-		if img,err2 := jpeg.Decode(f) ; err2 == nil {
-            return img,nil
-        }else{
-            return nil,err2
-        }
-    }else {
-        return nil, err
-    }
+	if f,err := os.Open(path) ; err == nil{
+		defer f.Close()
+		var img image.Image
+		var err2 error
+		ext := strings.ToLower(filepath.Ext(path))
+		switch {
+		case strings.EqualFold(ext,".jpg") || strings.EqualFold(ext,".jpeg") :
+			img,err2 = jpeg.Decode(f)
+			break
+		case strings.EqualFold(ext,".png") :
+			img,err2 = png.Decode(f)
+			break
+		default:err2 = errors.New("unknown format")
+		}
+		if err2 == nil {
+			return img,nil
+		}else{
+			return nil,err2
+		}
+	}else {
+		return nil, err
+	}
 }
 
-func resizeImage(img image.Image,width,height uint)image.Image{
-    switch {
-        case width == 0 && height == 0 : return img
-        case width == 0 : width = (height / uint(img.Bounds().Size().Y)) * uint(img.Bounds().Size().X)
-        case height == 0 : height = (width / uint(img.Bounds().Size().X)) * uint(img.Bounds().Size().Y)
-    }
-    return resizer.Resize(width,height,img,resizer.Bicubic)
+func resizeImage(img image.Image,width,height uint)(image.Image,uint,uint){
+	x,y := float32(img.Bounds().Size().X),float32(img.Bounds().Size().Y)
+	if float32(height) > y || float32(width) > x{
+		return img,uint(x),uint(y)
+	}
+	switch {
+	case width == 0 && height == 0 : return img,uint(x),uint(y)
+	case width == 0 : width = uint((float32(height) / y) * x)
+	case height == 0 : height = uint((float32(width) / x) * y)
+	}
+	return resizer.Resize(width,height,img,resizer.Bicubic),width,height
 }

@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-var localFolder string = ""
+var localFolder = ""
 
 func main(){
 
@@ -44,7 +44,7 @@ func help(w http.ResponseWriter,r * http.Request){
 
 func hello(w http.ResponseWriter,r * http.Request){
 	log.Println("Hello")
-	w.Write([]byte("Hellow world"))
+	w.Write([]byte("Hello world"))
 }
 
 func mirror(w http.ResponseWriter,r * http.Request){
@@ -78,5 +78,4 @@ func serveFiles(w http.ResponseWriter,r * http.Request){
 	path := r.URL.Path[1:]
 	log.Println("Serve file",path)
 	http.ServeFile(w,r,filepath.Join(localFolder,path))
-	//w.Write([]byte("Receive value '" + value + "'"))
 }

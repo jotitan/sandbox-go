@@ -184,6 +184,6 @@ func (s Server)Launch(){
 	server.HandleFunc("/listFolders",s.listFolders)
 	server.HandleFunc("/",s.defaultHandle)
 
-	logger.GetLogger2().Info("Start server on port 9004")
-	http.ListenAndServe(":9004",&server)
+	logger.GetLogger2().Info("Start server on port 9006")
+	http.ListenAndServe(":9006",&server)
 }

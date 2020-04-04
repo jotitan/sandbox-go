@@ -217,7 +217,7 @@ func (fm * foldersManager)AddFolder(folderPath string){
 }
 
 func (fm * foldersManager)load(){
-	if f,err := os.Open("c:\\Projets\\DATA\\save-images.json") ; err == nil {
+	if f,err := os.Open("save-images.json") ; err == nil {
 		data,_ := ioutil.ReadAll(f)
 		folders := make(map[string]*Node,0)
 		json.Unmarshal(data,&folders)
@@ -227,7 +227,7 @@ func (fm * foldersManager)load(){
 
 func (fm foldersManager)save(){
 	data,_ := json.Marshal(fm.Folders)
-	if f,err := os.OpenFile("c:\\Projets\\DATA\\save-images.json",os.O_TRUNC|os.O_CREATE|os.O_RDWR,os.ModePerm) ; err == nil {
+	if f,err := os.OpenFile("save-images.json",os.O_TRUNC|os.O_CREATE|os.O_RDWR,os.ModePerm) ; err == nil {
 		defer f.Close()
 		f.Write(data)
 		logger.GetLogger2().Info("Save tree in file")

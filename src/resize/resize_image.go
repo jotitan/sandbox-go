@@ -108,23 +108,20 @@ func (gor GoResizer)Resize(from,to string,width,height uint)(error,uint,uint){
 
 	if img,err := openImage(from) ; err == nil {
 		//fmt.Println("Time read",time.Now().Sub(begin))
-		logger.GetLogger2().Info("BOUNDS",img.Bounds())
 		imgResize,w,h := resizeImage(img, width, height)
-		logger.GetLogger2().Info("BOUNDS2",imgResize.Bounds(),w,h)
 		//fmt.Println("Time resize",time.Now().Sub(begin))
 		return saveImage(imgResize, to),w,h
 		//fmt.Println("Time save",time.Now().Sub(begin))
 	}else{
-		logger.GetLogger2().Info("GOT ERRR",err)
+		logger.GetLogger2().Info("Impossible to resize",err)
 		return err,0,0
 	}
 }
 
 func saveImage(img image.Image, path string)error{
-	if f,err := os.OpenFile(path,os.O_CREATE|os.O_TRUNC,os.ModePerm) ; err == nil{
-		jpeg.Encode(f,img,&(jpeg.Options{75}))
-		f.Close()
-		return nil
+	if f,err := os.OpenFile(path,os.O_CREATE|os.O_TRUNC|os.O_RDWR,os.ModePerm) ; err == nil{
+		defer f.Close()
+		return jpeg.Encode(f,img,&(jpeg.Options{75}))
 	}else{
 		return err
 	}

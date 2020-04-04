@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/jpeg"
 	"image/png"
+	"logger"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -107,11 +108,14 @@ func (gor GoResizer)Resize(from,to string,width,height uint)(error,uint,uint){
 
 	if img,err := openImage(from) ; err == nil {
 		//fmt.Println("Time read",time.Now().Sub(begin))
+		logger.GetLogger2().Info("BOUNDS",img.Bounds())
 		imgResize,w,h := resizeImage(img, width, height)
+		logger.GetLogger2().Info("BOUNDS2",imgResize.Bounds(),w,h)
 		//fmt.Println("Time resize",time.Now().Sub(begin))
 		return saveImage(imgResize, to),w,h
 		//fmt.Println("Time save",time.Now().Sub(begin))
 	}else{
+		logger.GetLogger2().Info("GOT ERRR",err)
 		return err,0,0
 	}
 }
@@ -161,5 +165,6 @@ func resizeImage(img image.Image,width,height uint)(image.Image,uint,uint){
 	case width == 0 : width = uint((float32(height) / y) * x)
 	case height == 0 : height = uint((float32(width) / x) * y)
 	}
+	logger.GetLogger2().Info("=>",width,height)
 	return resizer.Resize(width,height,img,resizer.Bicubic),width,height
 }

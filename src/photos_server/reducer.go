@@ -62,15 +62,11 @@ func (r * Reducer)listenAndResize(){
 func (r Reducer) resizeMultiformat(imageToResize ImageToResize,folder string){
 	// Reuse computed image to accelerate
 	from := imageToResize.path
-	logger.GetLogger2().Info("SIZES",r.sizes)
 	for i, size := range r.sizes {
-		logger.GetLogger2().Info("Start resize",size)
 		to := r.createJpegFile(folder,imageToResize.path,size)
 		logger.GetLogger2().Info("Run resize",from,to)
 		err,width,height := r.resize.Resize(from, to, 0, size)
-		if err == nil {
-			logger.GetLogger2().Info("Create resize image",to)
-		}else{
+		if err != nil {
 			logger.GetLogger2().Info("Got error on resize",from,to,err)
 		}
 		if i == len(r.sizes) -1 {

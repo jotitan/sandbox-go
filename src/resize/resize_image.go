@@ -162,6 +162,5 @@ func resizeImage(img image.Image,width,height uint)(image.Image,uint,uint){
 	case width == 0 : width = uint((float32(height) / y) * x)
 	case height == 0 : height = uint((float32(width) / x) * y)
 	}
-	logger.GetLogger2().Info("=>",width,height)
 	return resizer.Resize(width,height,img,resizer.Bicubic),width,height
 }

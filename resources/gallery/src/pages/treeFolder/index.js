@@ -2,8 +2,18 @@ import React, {useEffect, useState} from 'react'
 import {Tree} from 'antd'
 import axios from "axios";
 
+export const getBaseUrl = ()=>{
+    switch (window.location.hostname) {
+        case 'localhost':
+            return 'http://localhost:9006';
+        default : return window.location.host;
+
+    }
+}
+
 const adapt = node => {
-    let data = {title:node.Name.replace(/_/g," "),key:'/' + node.Link}
+    console.log(node)
+    let data = {title:node.Name.replace(/_/g," "),key:getBaseUrl() + node.Link}
     if(node.Children != null && node.Children.length > 0){
         data.children = node.Children.map(nc=>adapt(nc));
     }else{
@@ -16,11 +26,10 @@ export default function TreeFolder({setUrlFolder}) {
     const [tree,setTree] = useState([])
     const { DirectoryTree } = Tree;
 
-
     useEffect(()=>{
          axios({
             method:'GET',
-            url:'/rootFolders',
+            url:getBaseUrl() + '/rootFolders',
         }).then(d=>{
             setTree([adapt(d.data)] );
          })

@@ -118,6 +118,91 @@ func (gor GoResizer)Resize(from,to string,width,height uint)(error,uint,uint){
 	}
 }
 
+type imageWrapper struct {
+	from string
+	conversions []ImageToResize
+	finalWidth uint
+	finalHeight uint
+	to string
+	img image.Image
+	// Used when error or end
+	callback func(error,uint,uint)
+}
+
+type ImageToResize struct {
+	To string
+	Width uint
+	Height uint
+}
+
+type AsyncGoResizer struct{
+	goResizer GoResizer
+	// Chanel to open image
+	chanOpenImage chan imageWrapper
+	// Chanel to resize image
+	chanResizeImage chan imageWrapper
+	// Chanel to save resize image
+	chanSaveImage chan imageWrapper
+}
+
+func NewAsyncGoResize()AsyncGoResizer{
+	agor := AsyncGoResizer{
+		goResizer:GoResizer{},
+		chanOpenImage:make(chan imageWrapper,100),
+		chanResizeImage:make(chan imageWrapper,10),
+		chanSaveImage:make(chan imageWrapper,10),
+	}
+	go agor.runOpener()
+	go agor.runResizer()
+	go agor.runSaver()
+	return agor
+}
+
+func (agor AsyncGoResizer)runOpener(){
+	for{
+		pathWrapper := <- agor.chanOpenImage
+		if img,err := openImage(pathWrapper.from) ; err == nil {
+			pathWrapper.img = img
+			agor.chanResizeImage <- pathWrapper
+		}else{
+			logger.GetLogger2().Error("Impossible to resize",err)
+			pathWrapper.callback(err,0,0)
+		}
+	}
+}
+
+func (agor AsyncGoResizer)runResizer(){
+	for {
+		imgWrapper := <- agor.chanResizeImage
+		// Launch many resize if necessary
+		img := imgWrapper.img
+		for i,conversion := range imgWrapper.conversions {
+			imgResize,w,h := resizeImage(img, conversion.Width, conversion.Height)
+			// Only update the smallest
+			if i < len(imgWrapper.conversions) -1 {
+				h = 0
+				w = 0
+			}
+			agor.chanSaveImage <- imageWrapper{img:imgResize,to:conversion.To,finalWidth:w,finalHeight:h,callback:imgWrapper.callback}
+			img = imgResize
+		}
+
+	}
+}
+
+func (agor AsyncGoResizer)runSaver(){
+	for{
+		imgWrapper := <- agor.chanSaveImage
+		err := saveImage(imgWrapper.img, imgWrapper.to)
+		imgWrapper.callback(err,imgWrapper.finalWidth,imgWrapper.finalHeight)
+	}
+}
+
+// Launch resize async
+func (agor AsyncGoResizer)ResizeAsync(from string,conversions []ImageToResize,callback func(err error,w uint, h uint)){
+	agor.chanOpenImage <- imageWrapper{from:from,conversions:conversions,callback:callback}
+}
+
 func saveImage(img image.Image, path string)error{
 	if f,err := os.OpenFile(path,os.O_CREATE|os.O_TRUNC|os.O_RDWR,os.ModePerm) ; err == nil{
 		defer f.Close()

@@ -1,10 +1,13 @@
 import React, {useEffect, useState} from 'react'
 import Gallery from 'react-grid-gallery'
 import axios from "axios";
+import {getBaseUrl} from "../treeFolder";
+
 
 
 export default function MyGallery({urlFolder}) {
     const [images,setImages] = useState([])
+    let baseUrl = getBaseUrl();
     const loadImages = url => {
         if(url === ''){return;}
         axios({
@@ -12,7 +15,7 @@ export default function MyGallery({urlFolder}) {
             url:url,
         }).then(d=>{
             setImages(d.data.map(img=>{
-                return {caption:"",thumbnail:'http://localhost:9004' + img.ThumbnailLink,src:'http://localhost:9004' + img.ImageLink,thumbnailWidth:img.Width/2,thumbnailHeight:img.Height/2}
+                return {caption:"",thumbnail:baseUrl + img.ThumbnailLink,src:baseUrl + img.ImageLink,thumbnailWidth:img.Width/2,thumbnailHeight:img.Height/2}
             }));
         })
     }

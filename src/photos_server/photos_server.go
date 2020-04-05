@@ -118,9 +118,9 @@ func (s Server)getRootFolders(w http.ResponseWriter,r * http.Request){
 
 func (s Server)browseRestful(w http.ResponseWriter,r * http.Request){
 	// Extract folder
+	w.Header().Set("Access-Control-Allow-Origin","*")
 	path := r.URL.Path[9:]
 	logger.GetLogger2().Info("Browse restfull receive request",path)
-	w.Header().Set("Access-Control-Allow-Origin","*")
 	if files,err := s.foldersManager.Browse(path) ; err == nil {
 		formatedFiles := s.convertPaths(files,false)
 		if data,err := json.Marshal(formatedFiles) ; err == nil {

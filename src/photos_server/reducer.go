@@ -19,12 +19,12 @@ type Reducer struct {
 	sizes []uint
 	// Receive an absolute path of image and a relative path to cache
 	imagesToResize chan ImageToResize
-	resize resize.GoResizer
+	resize resize.AsyncGoResizer
 	totalCount int
 }
 
 func NewReducer(folder string, sizes []uint)Reducer{
-	r := Reducer{cache: folder,sizes:sizes,resize:resize.GoResizer{},imagesToResize:make(chan ImageToResize,100)}
+	r := Reducer{cache: folder,sizes:sizes,resize:resize.NewAsyncGoResize(),imagesToResize:make(chan ImageToResize,100)}
 	go r.listenAndResize()
 	return r
 }
@@ -59,25 +59,29 @@ func (r * Reducer)listenAndResize(){
 	}()
 }
 
+
+
 func (r Reducer) resizeMultiformat(imageToResize ImageToResize,folder string){
 	// Reuse computed image to accelerate
 	from := imageToResize.path
+	conversions := make([]resize.ImageToResize,len(r.sizes))
 	for i, size := range r.sizes {
-		to := r.createJpegFile(folder,imageToResize.path,size)
-		logger.GetLogger2().Info("Run resize",from,to)
-		err,width,height := r.resize.Resize(from, to, 0, size)
-		if err != nil {
-			logger.GetLogger2().Info("Got error on resize",from,to,err)
-		}
-		if i == len(r.sizes) -1 {
-			// Set ratio on node
-			imageToResize.node.Height = int(height)
-			imageToResize.node.Width = int(width)
-		}
-		from = to
+		conversions[i] = resize.ImageToResize{To:r.createJpegFile(folder,imageToResize.path,size),Width:0,Height:size}
 	}
-	imageToResize.node.ImagesResized = true
-	imageToResize.waiter.Done()
+	logger.GetLogger2().Info("Run resize",from)
+	callback := func(err error,width,height uint){
+		if err != nil {
+			logger.GetLogger2().Info("Got error on resize",err)
+		}else{
+			if width != 0 && height != 0 {
+				imageToResize.node.Height = int(height)
+				imageToResize.node.Width = int(width)
+				imageToResize.node.ImagesResized = true
+				imageToResize.waiter.Done()
+			}
+		}
+	}
+	r.resize.ResizeAsync(from,conversions,callback)
 }
 
 func (r Reducer)createPathInCache(path string)error{

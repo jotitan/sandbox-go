@@ -3,7 +3,7 @@ import {Tree} from 'antd'
 import axios from "axios";
 
 const adapt = node => {
-    let data = {title:node.Name.replace(/_/g," "),key:'http://localhost:9004' + node.Link}
+    let data = {title:node.Name.replace(/_/g," "),key:'/' + node.Link}
     if(node.Children != null && node.Children.length > 0){
         data.children = node.Children.map(nc=>adapt(nc));
     }else{
@@ -20,7 +20,7 @@ export default function TreeFolder({setUrlFolder}) {
     useEffect(()=>{
          axios({
             method:'GET',
-            url:'http://localhost:9004/rootFolders',
+            url:'/rootFolders',
         }).then(d=>{
             setTree([adapt(d.data)] );
          })

@@ -3,10 +3,11 @@ import {Tree} from 'antd'
 import axios from "axios";
 
 export const getBaseUrl = ()=>{
+    console.log(window.location)
     switch (window.location.hostname) {
         case 'localhost':
             return 'http://localhost:9006';
-        default : return window.location.host;
+        default : return window.location.origin;
 
     }
 }

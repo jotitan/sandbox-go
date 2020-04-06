@@ -217,21 +217,31 @@ func (fm * foldersManager)AddFolder(folderPath string){
 }
 
 func (fm * foldersManager)load(){
-	if f,err := os.Open("save-images.json") ; err == nil {
+	if f,err := os.Open(getSavePath()) ; err == nil {
 		defer f.Close()
 		data,_ := ioutil.ReadAll(f)
 		folders := make(map[string]*Node,0)
 		json.Unmarshal(data,&folders)
 		fm.Folders = folders
+	}else{
+		logger.GetLogger2().Error("Impossible to read saved config",getSavePath(),err)
 	}
+}
+
+func getSavePath()string{
+	wd,_ := os.Getwd()
+	return filepath.Join(wd,"save-images.json")
 }
 
 func (fm foldersManager)save(){
 	data,_ := json.Marshal(fm.Folders)
-	if f,err := os.OpenFile("save-images.json",os.O_TRUNC|os.O_CREATE|os.O_RDWR,os.ModePerm) ; err == nil {
+	if f,err := os.OpenFile(getSavePath(),os.O_TRUNC|os.O_CREATE|os.O_RDWR,os.ModePerm) ; err == nil {
 		defer f.Close()
 		f.Write(data)
-		logger.GetLogger2().Info("Save tree in file")
+
+		logger.GetLogger2().Info("Save tree in file",getSavePath())
+	}else{
+		logger.GetLogger2().Error("Impossible to save tree in file",getSavePath())
 	}
 }
 

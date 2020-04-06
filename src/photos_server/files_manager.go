@@ -242,7 +242,7 @@ func (fm * foldersManager)launchImageResize(folder *Node, rootFolder string){
 		fm.reducer.AddImage(path,relativePath,node,waiter)})
 	go func(w *sync.WaitGroup,node *Node){
 		w.Wait()
-		logger.GetLogger2().Info("End of resize folder")
+		logger.GetLogger2().Info("End of resize folder",folder.Name)
 		node.ImagesResized=true
 	}(waiter,folder)
 }

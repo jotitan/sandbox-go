@@ -68,7 +68,6 @@ func (r Reducer) resizeMultiformat(imageToResize ImageToResize,folder string){
 	for i, size := range r.sizes {
 		conversions[i] = resize.ImageToResize{To:r.createJpegFile(folder,imageToResize.path,size),Width:0,Height:size}
 	}
-	logger.GetLogger2().Info("Run resize",from)
 	callback := func(err error,width,height uint){
 		if err != nil {
 			logger.GetLogger2().Info("Got error on resize",err)

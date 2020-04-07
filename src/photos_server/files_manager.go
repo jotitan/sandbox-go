@@ -164,7 +164,7 @@ func (fm * foldersManager)Update()error{
 				for _, node := range delta {
 					logger.GetLogger2().Info("Launch update image resize", node.AbsolutePath)
 					waiter.Add(1)
-					fm.reducer.AddImage(node.AbsolutePath, node.RelativePath, node, waiter)
+					fm.reducer.AddImage(node.AbsolutePath, node.RelativePath, node, waiter,make(map[string]struct{}))
 				}
 				waiter.Wait()
 				logger.GetLogger2().Info("All pictures have been resized")
@@ -208,12 +208,44 @@ func (fm * foldersManager)AddFolder(folderPath string){
 	rootFolder := filepath.Dir(folderPath)
 	node := fm.Analyse(rootFolder,folderPath)
 	logger.GetLogger2().Info("Add folder",folderPath,"with",len(node))
+	// Check if images already exists to improve computing
+	existings := fm.searchExistingImages(folderPath)
+	logger.GetLogger2().Info("Found existing",len(existings))
+	globalWaiter := sync.WaitGroup{}
 	for name,folder := range node{
 		fm.Folders[name] = folder
-		fm.launchImageResize(folder,strings.Replace(folderPath,name,"",-1))
+		fm.launchImageResize(folder,strings.Replace(folderPath,name,"",-1),&globalWaiter,existings)
 	}
-	//
+	globalWaiter.Wait()
 	fm.save()
+}
+
+func (fm * foldersManager)searchExistingImages(folderPath string)map[string]struct{}{
+	// Find the folder in cache
+	folder := filepath.Join(fm.reducer.cache,filepath.Base(folderPath))
+	tree := fm.Analyse(fm.reducer.cache,folder)
+	// Browse all files
+	files := make(map[string]struct{})
+	for _,node := range tree {
+		for file,value := range extractImages(node) {
+			files[file] = value
+		}
+	}
+	return files
+}
+
+func extractImages(node *Node)map[string]struct{}{
+	m := make(map[string]struct{})
+	if node.IsFolder {
+		for _,subNode := range node.Files {
+			for file := range extractImages(subNode){
+				m[file] = struct{}{}
+			}
+		}
+	}else{
+		m[node.AbsolutePath] = struct{}{}
+	}
+	return m
 }
 
 func (fm * foldersManager)load(){
@@ -238,20 +270,22 @@ func (fm foldersManager)save(){
 	if f,err := os.OpenFile(getSavePath(),os.O_TRUNC|os.O_CREATE|os.O_RDWR,os.ModePerm) ; err == nil {
 		defer f.Close()
 		f.Write(data)
-
 		logger.GetLogger2().Info("Save tree in file",getSavePath())
 	}else{
 		logger.GetLogger2().Error("Impossible to save tree in file",getSavePath())
 	}
 }
 
-func (fm * foldersManager)launchImageResize(folder *Node, rootFolder string){
+func (fm * foldersManager)launchImageResize(folder *Node, rootFolder string,globalWaiter * sync.WaitGroup, existings map[string]struct{}){
+	globalWaiter.Add(1)
 	waiter := &sync.WaitGroup{}
 	folder.applyOnEach(rootFolder,func(path,relativePath string,node * Node){
 		waiter.Add(1)
-		fm.reducer.AddImage(path,relativePath,node,waiter)})
+		fm.reducer.AddImage(path,relativePath,node,waiter,existings)
+	})
 	go func(w *sync.WaitGroup,node *Node){
 		w.Wait()
+		globalWaiter.Done()
 		logger.GetLogger2().Info("End of resize folder",folder.Name)
 		node.ImagesResized=true
 	}(waiter,folder)

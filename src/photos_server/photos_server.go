@@ -36,6 +36,7 @@ func (s Server)listFolders(w http.ResponseWriter,r * http.Request){
 
 func (s Server)addFolder(w http.ResponseWriter,r * http.Request){
 	folder := r.FormValue("folder")
+	logger.GetLogger2().Info("Add folder",folder)
 	s.foldersManager.AddFolder(folder)
 }
 
@@ -128,6 +129,7 @@ func (s Server)browseRestful(w http.ResponseWriter,r * http.Request){
 			w.Write(data)
 		}
 	}else{
+		logger.GetLogger2().Info("Impossible to browse",path,err.Error())
 		http.Error(w,err.Error(),400)
 	}
 }
@@ -144,6 +146,8 @@ type imageRestFul struct{
 type folderRestFul struct{
 	Name string
 	Link string
+	// Means that folder also have images to display
+	HasImages bool
 	Children []interface{}
 }
 
@@ -160,13 +164,18 @@ func (s Server)convertPaths(nodes []*Node,onlyFolders bool)[]interface{}{
 		}else{
 			folder := folderRestFul{Name:node.Name,Link:filepath.ToSlash(filepath.Join("/browserf",node.RelativePath))}
 			if onlyFolders {
-				// RElaunch on subfolders
+				// Relaunch on subfolders
 				subNodes := make([]*Node,0,len(node.Files))
+				hasImages := false
 				for _,n := range node.Files {
 					subNodes = append(subNodes,n)
+					if !n.IsFolder {
+						hasImages = true
+					}
 				}
 				childrens :=s.convertPaths(subNodes,onlyFolders)
 				folder.Children = childrens
+				folder.HasImages = hasImages
 			}
 			files = append(files,folder)
 		}

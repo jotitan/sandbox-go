@@ -162,20 +162,20 @@ func (agor AsyncGoResizer)runOpener(){
 	for{
 		pathWrapper := <- agor.chanOpenImage
 
-		if checkAllExist(pathWrapper.conversions){
+		/*if checkAllExist(pathWrapper.conversions){
 			logger.GetLogger2().Info("Image already exists",pathWrapper.from)
-			x,y := getSize(pathWrapper.conversions[len(pathWrapper.conversions)-1].To)
+			x,y := GetSize(pathWrapper.conversions[len(pathWrapper.conversions)-1].To)
 			pathWrapper.callback(nil,x,y)
-		}else {
-			logger.GetLogger2().Info("Run resize", pathWrapper.from)
-			if img, err := openImage(pathWrapper.from); err == nil {
-				pathWrapper.img = img
-				agor.chanResizeImage <- pathWrapper
-			} else {
-				logger.GetLogger2().Error("Impossible to resize", err)
-				pathWrapper.callback(err, 0, 0)
-			}
+		}else {*/
+		logger.GetLogger2().Info("Run resize", pathWrapper.from)
+		if img, err := openImage(pathWrapper.from); err == nil {
+			pathWrapper.img = img
+			agor.chanResizeImage <- pathWrapper
+		} else {
+			logger.GetLogger2().Error("Impossible to resize", err)
+			pathWrapper.callback(err, 0, 0)
 		}
+		//}
 	}
 }
 
@@ -190,7 +190,7 @@ func checkAllExist(conversions []ImageToResize)bool{
 	return exists == len(conversions)
 }
 
-func getSize(path string)(uint,uint){
+func GetSize(path string)(uint,uint){
 	if img,err := openImage(path) ; err == nil {
 		return uint(img.Bounds().Size().X),uint(img.Bounds().Size().Y)
 	}
@@ -213,7 +213,6 @@ func (agor AsyncGoResizer)runResizer(){
 			agor.chanSaveImage <- imageWrapper{img:imgResize,to:conversion.To,finalWidth:w,finalHeight:h,callback:imgWrapper.callback}
 			img = imgResize
 		}
-
 	}
 }
 

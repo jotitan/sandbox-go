@@ -34,10 +34,18 @@ type ImageToResize struct{
 	relativePath string
 	node * Node
 	waiter * sync.WaitGroup
+	existings map[string]struct{}
 }
 
-func (r Reducer)AddImage(path,relativePath string,node * Node,waiter * sync.WaitGroup){
-	r.imagesToResize <- ImageToResize{path,relativePath,node,waiter}
+func (itr ImageToResize)update(h,w uint){
+	itr.node.Height = int(h)
+	itr.node.Width = int(w)
+	itr.node.ImagesResized = true
+	itr.waiter.Done()
+}
+
+func (r Reducer)AddImage(path,relativePath string,node * Node,waiter * sync.WaitGroup, existings map[string]struct{}){
+	r.imagesToResize <- ImageToResize{path,relativePath,node,waiter,existings}
 }
 
 // Return number of images wating to reduce and number of images reduced
@@ -65,18 +73,26 @@ func (r Reducer) resizeMultiformat(imageToResize ImageToResize,folder string){
 	// Reuse computed image to accelerate
 	from := imageToResize.path
 	conversions := make([]resize.ImageToResize,len(r.sizes))
+	// Check if both exist, if true, return, otherwise, resize
+	nbExist := 0
 	for i, size := range r.sizes {
 		conversions[i] = resize.ImageToResize{To:r.createJpegFile(folder,imageToResize.path,size),Width:0,Height:size}
+		if _,exist := imageToResize.existings[conversions[i].To]; exist {
+			nbExist++
+		}
+	}
+	if nbExist == len(r.sizes){
+		// All exist, get Size of little one and return
+		w,h := resize.GetSize(conversions[len(conversions)-1].To)
+		imageToResize.update(h,w)
+		return
 	}
 	callback := func(err error,width,height uint){
 		if err != nil {
 			logger.GetLogger2().Info("Got error on resize",err)
 		}else{
 			if width != 0 && height != 0 {
-				imageToResize.node.Height = int(height)
-				imageToResize.node.Width = int(width)
-				imageToResize.node.ImagesResized = true
-				imageToResize.waiter.Done()
+				imageToResize.update(height,width)
 			}
 		}
 	}

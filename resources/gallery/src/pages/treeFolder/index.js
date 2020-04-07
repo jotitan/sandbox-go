@@ -14,6 +14,7 @@ const sortByName = (a,b)=>a.Name === b.name ? 0:a.Name < b.Name ? -1:1;
 
 const adapt = node => {
     let data = {title:node.Name.replace(/_/g," "),key:getBaseUrl() + node.Link}
+    data.hasImages = node.HasImages;
     if(node.Children != null && node.Children.length > 0){
         data.children = node.Children.sort(sortByName).map(nc=>adapt(nc));
     }else{
@@ -32,13 +33,18 @@ export default function TreeFolder({setUrlFolder}) {
             method:'GET',
             url:getBaseUrl() + '/rootFolders',
         }).then(d=>{
-            setTree([adapt(d.data)] );
+            setTree([adapt(d.data)]);
         })
     },[])
 
     const onSelect = (e,f)=>{
         if(f.node.children == null || f.node.children.length === 0) {
             setUrlFolder(e[0])
+        }else{
+            // Case when folder has sub folders but also images
+            if(f.node.hasImages){
+                setUrlFolder(e[0])
+            }
         }
     }
 

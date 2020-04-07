@@ -14,7 +14,7 @@ export default function MyGallery({urlFolder}) {
             method:'GET',
             url:url,
         }).then(d=>{
-            setImages(d.data.map(img=>{
+            setImages(d.data.filter(file=>file.ImageLink != null).map(img=>{
                 return {caption:"",thumbnail:baseUrl + img.ThumbnailLink,src:baseUrl + img.ImageLink,thumbnailWidth:img.Width/2,thumbnailHeight:img.Height/2}
             }));
         })

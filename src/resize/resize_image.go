@@ -148,9 +148,9 @@ type AsyncGoResizer struct{
 func NewAsyncGoResize()AsyncGoResizer{
 	agor := AsyncGoResizer{
 		goResizer:GoResizer{},
-		chanOpenImage:make(chan imageWrapper,100),
-		chanResizeImage:make(chan imageWrapper,10),
-		chanSaveImage:make(chan imageWrapper,10),
+		chanOpenImage:make(chan imageWrapper,18),
+		chanResizeImage:make(chan imageWrapper,7),
+		chanSaveImage:make(chan imageWrapper,7),
 	}
 	go agor.runOpener()
 	go agor.runResizer()

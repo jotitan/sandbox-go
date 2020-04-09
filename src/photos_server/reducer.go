@@ -124,12 +124,13 @@ func (r Reducer) resizeMultiformat(imageToResize ImageToResize,folder string){
 	if nbExist == len(r.sizes){
 		// All exist, get Size of little one and return
 		w,h := resize.GetSize(conversions[len(conversions)-1].To)
+		logger.GetLogger2().Info("Image already exist",from, "extract infos",w,h,orientation,datePhoto)
 		imageToResize.update(h,w,datePhoto,orientation)
 		return
 	}
 	callback := func(err error,width,height uint){
 		if err != nil {
-			logger.GetLogger2().Info("Got error on resize",err)
+			logger.GetLogger2().Info("Got error on resize",from,err)
 		}else{
 			if width != 0 && height != 0 {
 				imageToResize.update(height,width,datePhoto,orientation)

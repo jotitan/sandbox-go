@@ -166,7 +166,6 @@ func (agor AsyncGoResizer)runOpener(){
 			pathWrapper.img = img
 			agor.chanResizeImage <- pathWrapper
 		} else {
-			logger.GetLogger2().Error("Impossible to resize", err)
 			pathWrapper.callback(err, 0, 0)
 		}
 	}

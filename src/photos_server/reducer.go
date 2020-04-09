@@ -131,6 +131,7 @@ func (r Reducer) resizeMultiformat(imageToResize ImageToResize,folder string){
 	callback := func(err error,width,height uint){
 		if err != nil {
 			logger.GetLogger2().Info("Got error on resize",from,err)
+			imageToResize.waiter.Done()
 		}else{
 			if width != 0 && height != 0 {
 				imageToResize.update(height,width,datePhoto,orientation)

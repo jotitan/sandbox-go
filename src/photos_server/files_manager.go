@@ -25,6 +25,8 @@ type Node struct {
 	RelativePath string
 	Width int
 	Height int
+	Date time.Time
+	Orientation int
 	Name string
 	IsFolder bool
 	// Store files in a map with name
@@ -275,6 +277,7 @@ func (fm foldersManager)save(){
 		logger.GetLogger2().Error("Impossible to save tree in file",getSavePath())
 	}
 }
+
 
 func (fm * foldersManager)launchImageResize(folder *Node, rootFolder string,globalWaiter * sync.WaitGroup, existings map[string]struct{}){
 	globalWaiter.Add(1)

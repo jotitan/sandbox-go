@@ -184,7 +184,6 @@ func (s Server)convertPaths(nodes []*Node,onlyFolders bool)[]interface{}{
 }
 
 func (s Server)Launch(){
-
 	server := http.ServeMux{}
 	server.HandleFunc("/analyse",s.analyse)
 	server.HandleFunc("/addFolder",s.addFolder)

@@ -20,6 +20,15 @@ export default function MyGallery({urlFolder}) {
         })
     }
 
+    const selectImage = index=>{
+        setImages(list=>{
+            let copy = list.slice();
+            copy[index].isSelected = list[index].isSelected != null ? !list[index].isSelected : true;
+            return copy;
+        });
+
+    };
+
     useEffect(()=>{
         loadImages(urlFolder)
     },[urlFolder])
@@ -30,6 +39,8 @@ export default function MyGallery({urlFolder}) {
                      imageCountSeparator={" / "}
                      showLightboxThumbnails={false}
                      showImageCount={false}
+                     //onSelectImage={selectImage}
+                     //enableImageSelection={true}
                      backdropClosesModal={true} lightboxWidth={2000}/>
 </>
     )

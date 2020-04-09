@@ -3,11 +3,13 @@ package photos_server
 import (
 	"errors"
 	"fmt"
+	"github.com/rwcarlsen/goexif/exif"
 	"logger"
 	"os"
 	"path/filepath"
 	"resize"
 	"sync"
+	"time"
 )
 
 //Manage reducing pictures
@@ -37,9 +39,11 @@ type ImageToResize struct{
 	existings map[string]struct{}
 }
 
-func (itr ImageToResize)update(h,w uint){
+func (itr ImageToResize)update(h,w uint, datePhoto time.Time, orientation int){
 	itr.node.Height = int(h)
 	itr.node.Width = int(w)
+	itr.node.Date = datePhoto
+	itr.node.Orientation = orientation
 	itr.node.ImagesResized = true
 	itr.waiter.Done()
 }
@@ -67,11 +71,47 @@ func (r * Reducer)listenAndResize(){
 	}()
 }
 
+// Called when index photo or update
+func GetExif(path string)(time.Time,int){
+	if f,err := os.Open(path) ; err == nil {
+		defer f.Close()
+		if infos,err := exif.Decode(f) ; err == nil {
+			return getExifDate(infos),getExifOrientation(infos)
+		}
+	}
+	return time.Now(),0
+}
 
+func getExifDate(infos *exif.Exif)time.Time{
+	date := getExifValue(infos,exif.DateTime)
+	if d,err := time.Parse("\"2006:01:02 03:04:05\"",date) ; err == nil {
+		return d
+	}
+	return time.Now()
+}
+
+// Return angle in degres
+func getExifOrientation(infos *exif.Exif)int{
+	switch getExifValue(infos,exif.Orientation) {
+	case "1" : return 0
+	case "8" : return 90
+	case "3" : return 180
+	case "6" : return 270
+	default : return 0
+	}
+}
+
+func getExifValue(infos *exif.Exif, field exif.FieldName)string{
+	if d,err := infos.Get(field) ; err == nil {
+		return d.String()
+	}
+	return ""
+}
 
 func (r Reducer) resizeMultiformat(imageToResize ImageToResize,folder string){
 	// Reuse computed image to accelerate
 	from := imageToResize.path
+	datePhoto,orientation := GetExif(from)
 	conversions := make([]resize.ImageToResize,len(r.sizes))
 	// Check if both exist, if true, return, otherwise, resize
 	nbExist := 0
@@ -84,7 +124,7 @@ func (r Reducer) resizeMultiformat(imageToResize ImageToResize,folder string){
 	if nbExist == len(r.sizes){
 		// All exist, get Size of little one and return
 		w,h := resize.GetSize(conversions[len(conversions)-1].To)
-		imageToResize.update(h,w)
+		imageToResize.update(h,w,datePhoto,orientation)
 		return
 	}
 	callback := func(err error,width,height uint){
@@ -92,7 +132,7 @@ func (r Reducer) resizeMultiformat(imageToResize ImageToResize,folder string){
 			logger.GetLogger2().Info("Got error on resize",err)
 		}else{
 			if width != 0 && height != 0 {
-				imageToResize.update(height,width)
+				imageToResize.update(height,width,datePhoto,orientation)
 			}
 		}
 	}

@@ -1,13 +1,20 @@
 package photos_server
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/disintegration/imaging"
+	"github.com/dsoprea/go-jpeg-image-structure"
 	"github.com/rwcarlsen/goexif/exif"
+	exifutil "github.com/dsoprea/go-exif/v2"
+	"image/color"
+	"image/jpeg"
 	"logger"
 	"os"
 	"path/filepath"
 	"resize"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -32,24 +39,51 @@ func NewReducer(folder string, sizes []uint)Reducer{
 }
 
 type ImageToResize struct{
-	path string
+	path         string
 	relativePath string
-	node * Node
-	waiter * sync.WaitGroup
-	existings map[string]struct{}
+	node         * Node
+	waiter       * sync.WaitGroup
+	forceRotate  bool
+	existings    map[string]struct{}
 }
 
-func (itr ImageToResize)update(h,w uint, datePhoto time.Time, orientation int){
+func setExif(path string,orientation int,date time.Time)bool{
+	jmp := jpegstructure.NewJpegMediaParser()
+	media,_ := jmp.ParseFile(path)
+	sl := media.(*jpegstructure.SegmentList)
+	root := exifutil.NewIfdBuilder(exifutil.NewIfdMappingWithStandard(),exifutil.NewTagIndex(),"IFD",binary.LittleEndian)
+
+	idfBuilder,_ := exifutil.GetOrCreateIbFromRootIb(root,"IFD0")
+	idfBuilder.SetStandardWithName("Orientation",string(byte(orientation)))
+	updatedTimestampPhrase := exifutil.ExifFullTimestampString(date)
+
+	idfBuilder.SetStandardWithName("DateTime", updatedTimestampPhrase)
+	idfBuilder.SetStandardWithName("DateTimeOriginal", updatedTimestampPhrase)
+	sl.SetExif(root)
+	f,_ := os.OpenFile(path,os.O_RDWR|os.O_CREATE|os.O_TRUNC,os.ModePerm)
+	defer f.Close()
+	return sl.Write(f) == nil
+}
+
+
+// @param updateExif : if true, update exif (datePhoto & orientation) on each resized photo
+func (itr ImageToResize)update(h,w uint, datePhoto time.Time, orientation int, conversions []resize.ImageToResize, updateExif bool){
 	itr.node.Height = int(h)
 	itr.node.Width = int(w)
 	itr.node.Date = datePhoto
-	itr.node.Orientation = orientation
+	// Useless in fact
+	if updateExif {
+		logger.GetLogger2().Info("Update exif of",itr.path,orientation)
+		for _,img := range conversions {
+			setExif(img.To,orientation,datePhoto)
+		}
+	}
 	itr.node.ImagesResized = true
 	itr.waiter.Done()
 }
 
-func (r Reducer)AddImage(path,relativePath string,node * Node,waiter * sync.WaitGroup, existings map[string]struct{}){
-	r.imagesToResize <- ImageToResize{path,relativePath,node,waiter,existings}
+func (r Reducer)AddImage(path,relativePath string,node * Node,waiter * sync.WaitGroup, existings map[string]struct{}, forceRotate bool){
+	r.imagesToResize <- ImageToResize{path,relativePath,node,waiter,forceRotate,existings}
 }
 
 // Return number of images wating to reduce and number of images reduced
@@ -84,7 +118,7 @@ func GetExif(path string)(time.Time,int){
 
 func getExifDate(infos *exif.Exif)time.Time{
 	date := getExifValue(infos,exif.DateTime)
-	if d,err := time.Parse("\"2006:01:02 03:04:05\"",date) ; err == nil {
+	if d,err := time.Parse("\"2006:01:02 15:04:05\"",date) ; err == nil {
 		return d
 	}
 	return time.Now()
@@ -92,13 +126,13 @@ func getExifDate(infos *exif.Exif)time.Time{
 
 // Return angle in degres
 func getExifOrientation(infos *exif.Exif)int{
-	switch getExifValue(infos,exif.Orientation) {
-	case "1" : return 0
-	case "8" : return 90
-	case "3" : return 180
-	case "6" : return 270
-	default : return 0
+	if value,err := strconv.ParseInt(getExifValue(infos,exif.Orientation),10,32); err == nil {
+		return int(value)
 	}
+	return 0
+	/*
+	1 : 0, 8 : 90, 3 : 180, 6 : 270
+	*/
 }
 
 func getExifValue(infos *exif.Exif, field exif.FieldName)string{
@@ -112,8 +146,28 @@ func (r Reducer) resizeMultiformat(imageToResize ImageToResize,folder string){
 	// Reuse computed image to accelerate
 	from := imageToResize.path
 	datePhoto,orientation := GetExif(from)
-	conversions := make([]resize.ImageToResize,len(r.sizes))
 	// Check if both exist, if true, return, otherwise, resize
+	conversions,alreadyExist := r.checkAlreadyExist(folder,imageToResize)
+	if alreadyExist {
+		// All exist, get Size of little one and return
+		r.treatAlreadyExist(conversions,datePhoto,orientation,imageToResize)
+		return
+	}
+	callback := func(err error,width,height uint,correctOrientation int){
+		if err != nil {
+			logger.GetLogger2().Info("Got error on resize",from,err)
+			imageToResize.waiter.Done()
+		}else{
+			if width != 0 && height != 0 {
+				imageToResize.update(height,width,datePhoto,correctOrientation,conversions,true)
+			}
+		}
+	}
+	r.resize.ResizeAsync(from,orientation,conversions,callback)
+}
+
+func (r Reducer)checkAlreadyExist(folder string,imageToResize ImageToResize)([]resize.ImageToResize,bool){
+	conversions := make([]resize.ImageToResize,len(r.sizes))
 	nbExist := 0
 	for i, size := range r.sizes {
 		conversions[i] = resize.ImageToResize{To:r.createJpegFile(folder,imageToResize.path,size),Width:0,Height:size}
@@ -121,24 +175,41 @@ func (r Reducer) resizeMultiformat(imageToResize ImageToResize,folder string){
 			nbExist++
 		}
 	}
-	if nbExist == len(r.sizes){
-		// All exist, get Size of little one and return
-		w,h := resize.GetSize(conversions[len(conversions)-1].To)
-		logger.GetLogger2().Info("Image already exist",from, "extract infos",w,h,orientation,datePhoto)
-		imageToResize.update(h,w,datePhoto,orientation)
-		return
-	}
-	callback := func(err error,width,height uint){
-		if err != nil {
-			logger.GetLogger2().Info("Got error on resize",from,err)
-			imageToResize.waiter.Done()
-		}else{
-			if width != 0 && height != 0 {
-				imageToResize.update(height,width,datePhoto,orientation)
-			}
+	return conversions,nbExist == len(r.sizes)
+}
+
+func (r Reducer)treatAlreadyExist(conversions []resize.ImageToResize,datePhoto time.Time,orientation int, imageToResize ImageToResize){
+	// All exist, get Size of little one and return
+	w,h := resize.GetSize(conversions[len(conversions)-1].To)
+	logger.GetLogger2().Info("Image already exist",imageToResize.path, "extract infos",w,h,orientation,datePhoto)
+	// If force rotate, rotate images and set exif orientation to 0
+	if imageToResize.forceRotate && orientation != 1{
+		// If rotation is 90 or -90, change w and h
+		if orientation %2 == 0 {
+			w,h = h,w
 		}
+		// Rotate all images and set exit on all
+		for _,c := range conversions {
+			r.rotateImage(c.To,orientation)
+		}
+		orientation = 1
 	}
-	r.resize.ResizeAsync(from,conversions,callback)
+	imageToResize.update(h,w,datePhoto,orientation,conversions,imageToResize.forceRotate)
+}
+
+func (r Reducer)rotateImage(path string,orientation int){
+	if f,err := os.Open(path) ; err == nil {
+		logger.GetLogger2().Info("Launch rotate image",path,orientation)
+		img,_ :=jpeg.Decode(f)
+		f.Close()
+		angle := resize.CorrectRotation(orientation)
+		img = imaging.Rotate(img,float64(angle),color.Transparent)
+		f,_ := os.OpenFile(path,os.O_TRUNC|os.O_RDWR|os.O_CREATE,os.ModePerm)
+		if err := jpeg.Encode(f,img,&(jpeg.Options{75})) ; err != nil {
+			logger.GetLogger2().Error("Impsosible to rotate image",err)
+		}
+		f.Close()
+	}
 }
 
 func (r Reducer)createPathInCache(path string)error{

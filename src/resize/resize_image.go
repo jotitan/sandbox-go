@@ -3,8 +3,10 @@ package resize
 import (
 	"errors"
 	"fmt"
+	"github.com/disintegration/imaging"
 	resizer "github.com/nfnt/resize"
 	"image"
+	"image/color"
 	"image/jpeg"
 	"image/png"
 	"logger"
@@ -121,12 +123,14 @@ func (gor GoResizer)Resize(from,to string,width,height uint)(error,uint,uint){
 type imageWrapper struct {
 	from string
 	conversions []ImageToResize
+	// Rotation of original image
+	orientation int
 	finalWidth uint
 	finalHeight uint
 	to string
 	img image.Image
 	// Used when error or end
-	callback func(error,uint,uint)
+	callback func(error,uint,uint,int)
 }
 
 type ImageToResize struct {
@@ -166,7 +170,7 @@ func (agor AsyncGoResizer)runOpener(){
 			pathWrapper.img = img
 			agor.chanResizeImage <- pathWrapper
 		} else {
-			pathWrapper.callback(err, 0, 0)
+			pathWrapper.callback(err, 0, 0,1)
 		}
 	}
 }
@@ -178,20 +182,27 @@ func GetSize(path string)(uint,uint){
 	return 0,0
 }
 
-
 func (agor AsyncGoResizer)runResizer(){
 	for {
 		imgWrapper := <- agor.chanResizeImage
 		// Launch many resize if necessary
 		img := imgWrapper.img
+		correctedOrientation := imgWrapper.orientation
 		for i,conversion := range imgWrapper.conversions {
-			imgResize,w,h := resizeImage(img, conversion.Width, conversion.Height)
+			var imgResize image.Image
+			var w, h = uint(0),uint(0)
+			if imgWrapper.orientation != 1 && i == 0 {
+				// Run resize and rotate, only on the first (cause resize on following are computed on first image
+				imgResize, w, h,correctedOrientation = resizeAndRotateImage(img,conversion.Width,conversion.Height,imgWrapper.orientation)
+			}else {
+				imgResize, w, h = resizeImage(img, conversion.Width, conversion.Height)
+			}
 			// Only update the smallest
 			if i < len(imgWrapper.conversions) -1 {
 				h = 0
 				w = 0
 			}
-			agor.chanSaveImage <- imageWrapper{img:imgResize,to:conversion.To,finalWidth:w,finalHeight:h,callback:imgWrapper.callback}
+			agor.chanSaveImage <- imageWrapper{img:imgResize,to:conversion.To,finalWidth:w,finalHeight:h,orientation:correctedOrientation,callback:imgWrapper.callback}
 			img = imgResize
 		}
 	}
@@ -201,13 +212,13 @@ func (agor AsyncGoResizer)runSaver(){
 	for{
 		imgWrapper := <- agor.chanSaveImage
 		err := saveImage(imgWrapper.img, imgWrapper.to)
-		imgWrapper.callback(err,imgWrapper.finalWidth,imgWrapper.finalHeight)
+		imgWrapper.callback(err,imgWrapper.finalWidth,imgWrapper.finalHeight,imgWrapper.orientation)
 	}
 }
 
 // Launch resize async
-func (agor AsyncGoResizer)ResizeAsync(from string,conversions []ImageToResize,callback func(err error,w uint, h uint)){
-	agor.chanOpenImage <- imageWrapper{from:from,conversions:conversions,callback:callback}
+func (agor AsyncGoResizer)ResizeAsync(from string,orientation int,conversions []ImageToResize,callback func(err error,w uint, h uint,o int)){
+	agor.chanOpenImage <- imageWrapper{from:from,orientation:orientation,conversions:conversions,callback:callback}
 }
 
 func saveImage(img image.Image, path string)error{
@@ -255,4 +266,28 @@ func resizeImage(img image.Image,width,height uint)(image.Image,uint,uint){
 	case height == 0 : height = uint((float32(width) / x) * y)
 	}
 	return resizer.Resize(width,height,img,resizer.Bicubic),width,height
+}
+
+// Rotate image before resizing
+// Image is rotating, always return 1 as exif orientation
+func resizeAndRotateImage(img image.Image,width,height uint,orientation int)(image.Image,uint,uint,int){
+	angle := CorrectRotation(orientation)
+
+	// If angle different than normal, rotate
+	if angle != 0 {
+		img = imaging.Rotate(img,float64(angle),color.Transparent)
+	}
+	imgResized,w,h := resizeImage(img,width,height)
+	return imgResized,w,h,1
+}
+
+// Return angle in degree based on exif rotation
+func CorrectRotation(orientation int)int{
+	switch orientation {
+	case 1 : return 0
+	case 8 : return 90
+	case 3 : return 180
+	case 6 : return -90
+	}
+	return 0
 }

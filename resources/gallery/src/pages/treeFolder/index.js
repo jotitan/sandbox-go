@@ -24,7 +24,7 @@ const adapt = node => {
 }
 
 export default function TreeFolder({setUrlFolder}) {
-    const [tree,setTree] = useState([])
+    const [tree,setTree] = useState([]);
     const { DirectoryTree } = Tree;
     const [height,setHeight] = useState(window.innerHeight-95);
 
@@ -35,7 +35,7 @@ export default function TreeFolder({setUrlFolder}) {
         }).then(d=>{
             setTree([adapt(d.data)]);
         })
-    },[])
+    },[]);
 
     const onSelect = (e,f)=>{
         if(f.node.children == null || f.node.children.length === 0) {

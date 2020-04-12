@@ -2,12 +2,17 @@ package photos_server
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/disintegration/imaging"
+	"image/color"
+	"image/jpeg"
 	"io"
 	"logger"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 
@@ -36,8 +41,9 @@ func (s Server)listFolders(w http.ResponseWriter,r * http.Request){
 
 func (s Server)addFolder(w http.ResponseWriter,r * http.Request){
 	folder := r.FormValue("folder")
-	logger.GetLogger2().Info("Add folder",folder)
-	s.foldersManager.AddFolder(folder)
+	forceRotate := r.FormValue("forceRotate") == "true"
+	logger.GetLogger2().Info("Add folder",folder,"and forceRotate :",forceRotate)
+	s.foldersManager.AddFolder(folder,forceRotate)
 }
 
 func (s Server)analyse(w http.ResponseWriter,r * http.Request){
@@ -70,7 +76,7 @@ func (s Server)defaultHandle(w http.ResponseWriter,r * http.Request){
 
 func (s Server)image(w http.ResponseWriter,r * http.Request){
 	path := r.URL.Path[7:]
-	logger.GetLogger2().Info("Image",path)
+	//logger.GetLogger2().Info("Image",path)
 	w.Header().Set("Content-type","image/jpeg")
 	if file,err := os.Open(filepath.Join(s.foldersManager.reducer.cache,path)) ; err == nil {
 		if _,e := io.Copy(w,file) ; e != nil {
@@ -141,6 +147,8 @@ type imageRestFul struct{
 	ImageLink string
 	Width int
 	Height int
+	Date time.Time
+	Orientation int
 }
 
 type folderRestFul struct{
@@ -157,7 +165,8 @@ func (s Server)convertPaths(nodes []*Node,onlyFolders bool)[]interface{}{
 	for _,node := range nodes {
 		if !node.IsFolder {
 			if !onlyFolders {
-				files = append(files, imageRestFul{Name: node.Name, Width: node.Width, Height: node.Height,
+				files = append(files, imageRestFul{
+					Name: node.Name, Width: node.Width, Height: node.Height,Date:node.Date,
 					ThumbnailLink: filepath.ToSlash(filepath.Join("/image", s.foldersManager.GetSmallImageName(*node))),
 					ImageLink:     filepath.ToSlash(filepath.Join("/image", s.foldersManager.GetMiddleImageName(*node)))})
 			}
@@ -183,7 +192,24 @@ func (s Server)convertPaths(nodes []*Node,onlyFolders bool)[]interface{}{
 	return files
 }
 
+func test(){
+	img := "C:\\Projets\\DATA\\cache_resizer\\2019_FIN\\20190921_ANNIV_ELIOTT\\test.jpg"
+	imgTest := "C:\\Projets\\DATA\\cache_resizer\\2019_FIN\\20190921_ANNIV_ELIOTT\\test2.jpg"
+	f,e  := os.Open(img)
+	fmt.Println(e)
+	f2,e2  := os.OpenFile(imgTest,os.O_TRUNC|os.O_CREATE|os.O_RDWR,os.ModePerm)
+	fmt.Println(e2)
+	defer f.Close()
+	defer f2.Close()
+	imgA,_ := jpeg.Decode(f)
+	//img2 :=imaging.Rotate90(imgA)
+	img2 :=imaging.Rotate(imgA,float64(90),color.Transparent)
+	jpeg.Encode(f2,img2,&(jpeg.Options{75}))
+}
+
+
 func (s Server)Launch(){
+	//test()
 	server := http.ServeMux{}
 	server.HandleFunc("/analyse",s.analyse)
 	server.HandleFunc("/addFolder",s.addFolder)
@@ -193,5 +219,6 @@ func (s Server)Launch(){
 	server.HandleFunc("/",s.defaultHandle)
 
 	logger.GetLogger2().Info("Start server on port 9006")
-	http.ListenAndServe(":9006",&server)
+	err := http.ListenAndServe(":9006",&server)
+	logger.GetLogger2().Error("Server stopped cause",err)
 }

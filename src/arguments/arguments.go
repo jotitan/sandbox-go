@@ -1,10 +1,10 @@
 package arguments
 
 import (
-	"strings"
+	"logger"
 	"os"
 	"strconv"
-	"logger"
+	"strings"
 )
 
 type Arguments struct {
@@ -30,7 +30,7 @@ func (args * Arguments) parse(){
 	currentKey := ""
 	for _, value := range os.Args[1:] {
 		if strings.HasPrefix(value, "-") {
-			if _,ok := args.data[currentKey] ; !ok {
+			if _,ok := args.data[currentKey] ; currentKey != "" && !ok {
 				args.data[currentKey] = ""
 			}
 			currentKey = value[1:]
@@ -40,6 +40,9 @@ func (args * Arguments) parse(){
 			}
 			currentKey = ""
 		}
+	}
+	if currentKey != "" {
+		args.data[currentKey] = ""
 	}
 }
 
@@ -52,6 +55,12 @@ func (args Arguments)GetUInt(argName string)uint{
 	}
 	return 0
 }
+
+func (args Arguments)Exist(argName string)bool {
+	_, ok := args.data[argName]
+	return ok
+}
+
 
 func (args Arguments)GetString(argName string)string{
 	if value,ok := args.data[argName]; ok {

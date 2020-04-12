@@ -26,7 +26,6 @@ type Node struct {
 	Width int
 	Height int
 	Date time.Time
-	Orientation int
 	Name string
 	IsFolder bool
 	// Store files in a map with name
@@ -166,7 +165,7 @@ func (fm * foldersManager)Update()error{
 				for _, node := range delta {
 					logger.GetLogger2().Info("Launch update image resize", node.AbsolutePath)
 					waiter.Add(1)
-					fm.reducer.AddImage(node.AbsolutePath, node.RelativePath, node, waiter,make(map[string]struct{}))
+					fm.reducer.AddImage(node.AbsolutePath, node.RelativePath, node, waiter,make(map[string]struct{}),false)
 				}
 				waiter.Wait()
 				logger.GetLogger2().Info("All pictures have been resized")
@@ -206,7 +205,7 @@ func (fm foldersManager)removeFile(path string){
 	os.Remove(path)
 }
 
-func (fm * foldersManager)AddFolder(folderPath string){
+func (fm * foldersManager)AddFolder(folderPath string,forceRotate bool){
 	rootFolder := filepath.Dir(folderPath)
 	node := fm.Analyse(rootFolder,folderPath)
 	logger.GetLogger2().Info("Add folder",folderPath,"with",len(node))
@@ -216,7 +215,7 @@ func (fm * foldersManager)AddFolder(folderPath string){
 	globalWaiter := sync.WaitGroup{}
 	for name,folder := range node{
 		fm.Folders[name] = folder
-		fm.launchImageResize(folder,strings.Replace(folderPath,name,"",-1),&globalWaiter,existings)
+		fm.launchImageResize(folder,strings.Replace(folderPath,name,"",-1),&globalWaiter,existings,forceRotate)
 	}
 	globalWaiter.Wait()
 	fm.save()
@@ -279,12 +278,12 @@ func (fm foldersManager)save(){
 }
 
 
-func (fm * foldersManager)launchImageResize(folder *Node, rootFolder string,globalWaiter * sync.WaitGroup, existings map[string]struct{}){
+func (fm * foldersManager)launchImageResize(folder *Node, rootFolder string,globalWaiter * sync.WaitGroup, existings map[string]struct{},forceRotate bool){
 	globalWaiter.Add(1)
 	waiter := &sync.WaitGroup{}
 	folder.applyOnEach(rootFolder,func(path,relativePath string,node * Node){
 		waiter.Add(1)
-		fm.reducer.AddImage(path,relativePath,node,waiter,existings)
+		fm.reducer.AddImage(path,relativePath,node,waiter,existings,forceRotate)
 	})
 	go func(w *sync.WaitGroup,node *Node){
 		w.Wait()

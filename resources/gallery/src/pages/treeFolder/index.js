@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react'
 import {Tree} from 'antd'
 import axios from "axios";
+import useLocalStorage from "../../services/local-storage.hook";
 
 export const getBaseUrl = ()=>{
     switch (window.location.hostname) {
@@ -15,6 +16,7 @@ const sortByName = (a,b)=>a.Name === b.name ? 0:a.Name < b.Name ? -1:1;
 const adapt = node => {
     let data = {title:node.Name.replace(/_/g," "),key:getBaseUrl() + node.Link}
     data.hasImages = node.HasImages;
+
     if(node.Children != null && node.Children.length > 0){
         data.children = node.Children.sort(sortByName).map(nc=>adapt(nc));
     }else{
@@ -27,7 +29,7 @@ export default function TreeFolder({setUrlFolder}) {
     const [tree,setTree] = useState([]);
     const { DirectoryTree } = Tree;
     const [height,setHeight] = useState(window.innerHeight-95);
-
+    const [expandables,setExpandables] = useLocalStorage("expandables",[])
     useEffect(()=>{
         axios({
             method:'GET',
@@ -49,19 +51,28 @@ export default function TreeFolder({setUrlFolder}) {
     }
 
     window.addEventListener('resize', ()=>setHeight(window.innerHeight-95));
-
-
-    return (
-        <>
+    const onExpand = values=>{
+        setExpandables(values)
+    }
+    return(
+        tree.length === 0 ? '' :
             <DirectoryTree
-                defaultExpandAll
                 onSelect={onSelect}
                 treeData={tree}
                 height={height}
+                autoExpandParent={true}
+                expandedKeys={expandables}
+                onExpand={onExpand}
                 virtual={true}
-                style={{fontSize:12+'px',width:300+'px',overflow:'auto',backgroundColor:'#001529',color:'#999'}}
-
+                style={{
+                    fontSize: 12 + 'px',
+                    width: 300 + 'px',
+                    overflow: 'auto',
+                    backgroundColor: '#001529',
+                    color: '#999'
+                }}
             />
-        </>
     )
+
+
 }

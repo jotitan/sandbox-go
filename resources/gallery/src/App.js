@@ -5,7 +5,12 @@ import MyGallery from "./pages/gallery";
 import TreeFolder from "./pages/treeFolder";
 import {Layout, Menu} from 'antd';
 import {LogoutOutlined} from "@ant-design/icons";
+import { createBrowserHistory } from 'history';
 
+
+export const history = createBrowserHistory({
+    basename: process.env.PUBLIC_URL
+});
 
 function App() {
     const { Sider,Content } = Layout;
@@ -17,7 +22,7 @@ function App() {
     };
     const [urlFolder,setUrlFolder] = useState('')
   return (
-      <Layout>
+      <Layout hasSider={true}>
               <Sider collapsible collapsed={collapsed} onCollapse={toggleCollapsed} width={300}>
                   <div className="logo" />
                   <Content style={{height:100+'%'}}>

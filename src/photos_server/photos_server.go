@@ -2,10 +2,6 @@ package photos_server
 
 import (
 	"encoding/json"
-	"fmt"
-	"github.com/disintegration/imaging"
-	"image/color"
-	"image/jpeg"
 	"io"
 	"logger"
 	"net/http"
@@ -64,13 +60,15 @@ func (s Server)defaultHandle(w http.ResponseWriter,r * http.Request){
 	case strings.Index(r.URL.Path,"/browse") == 0:
 		s.browse(w,r)
 		break
+	case strings.Index(r.URL.Path,"/imagehd") == 0:
+		s.imageHD(w,r)
+		break
 	case strings.Index(r.URL.Path,"/image") == 0:
 		s.image(w,r)
 		break
 	default:
 		logger.GetLogger2().Info("Receive request", r.URL, r.URL.Path)
 		http.ServeFile(w,r,filepath.Join(s.resources,r.RequestURI[1:]))
-
 	}
 }
 
@@ -86,6 +84,28 @@ func (s Server)image(w http.ResponseWriter,r * http.Request){
 		http.Error(w,"Image not found",404)
 	}
 }
+
+// Return original image
+func (s Server)imageHD(w http.ResponseWriter,r * http.Request){
+	path := r.URL.Path[9:]
+	// Find absolute path based on first folder
+	baseDir := strings.Split(path,"/")[0]
+	if folder,exist := s.foldersManager.Folders[baseDir] ; !exist {
+		http.Error(w,"Image folder hd not found",404)
+	}else{
+		imgPath :=filepath.Join(folder.AbsolutePath,filepath.Join(strings.Split(path,"/")[1:]...))
+		w.Header().Set("Content-type","image/jpeg")
+		if file,err := os.Open(imgPath) ; err == nil {
+			if _,e := io.Copy(w,file) ; e != nil {
+				http.Error(w,"Error during image rendering",404)
+			}
+		}else{
+			http.Error(w,"Image hd not found",404)
+		}
+	}
+
+}
+
 
 func (s Server)browse(w http.ResponseWriter,r * http.Request){
 	// Extract folder
@@ -120,7 +140,6 @@ func (s Server)getRootFolders(w http.ResponseWriter,r * http.Request){
 		w.Header().Set("Content-type","application/json")
 		w.Write(data)
 	}
-
 }
 
 func (s Server)browseRestful(w http.ResponseWriter,r * http.Request){
@@ -145,6 +164,7 @@ type imageRestFul struct{
 	Name string
 	ThumbnailLink string
 	ImageLink string
+	HdLink string
 	Width int
 	Height int
 	Date time.Time
@@ -167,6 +187,7 @@ func (s Server)convertPaths(nodes []*Node,onlyFolders bool)[]interface{}{
 			if !onlyFolders {
 				files = append(files, imageRestFul{
 					Name: node.Name, Width: node.Width, Height: node.Height,Date:node.Date,
+					HdLink:filepath.ToSlash(filepath.Join("/imagehd",node.RelativePath)),
 					ThumbnailLink: filepath.ToSlash(filepath.Join("/image", s.foldersManager.GetSmallImageName(*node))),
 					ImageLink:     filepath.ToSlash(filepath.Join("/image", s.foldersManager.GetMiddleImageName(*node)))})
 			}
@@ -191,22 +212,6 @@ func (s Server)convertPaths(nodes []*Node,onlyFolders bool)[]interface{}{
 	}
 	return files
 }
-
-func test(){
-	img := "C:\\Projets\\DATA\\cache_resizer\\2019_FIN\\20190921_ANNIV_ELIOTT\\test.jpg"
-	imgTest := "C:\\Projets\\DATA\\cache_resizer\\2019_FIN\\20190921_ANNIV_ELIOTT\\test2.jpg"
-	f,e  := os.Open(img)
-	fmt.Println(e)
-	f2,e2  := os.OpenFile(imgTest,os.O_TRUNC|os.O_CREATE|os.O_RDWR,os.ModePerm)
-	fmt.Println(e2)
-	defer f.Close()
-	defer f2.Close()
-	imgA,_ := jpeg.Decode(f)
-	//img2 :=imaging.Rotate90(imgA)
-	img2 :=imaging.Rotate(imgA,float64(90),color.Transparent)
-	jpeg.Encode(f2,img2,&(jpeg.Options{75}))
-}
-
 
 func (s Server)Launch(){
 	//test()

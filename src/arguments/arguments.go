@@ -69,6 +69,13 @@ func (args Arguments)GetString(argName string)string{
 	return ""
 }
 
+func (args Arguments)GetStringDefault(argName,defaultValue string)string{
+	if value,ok := args.data[argName]; ok {
+		return value
+	}
+	return defaultValue
+}
+
 func (args Arguments)GetMandatoryString(argName,errorMessage string)string{
 	if value,ok := args.data[argName]; ok {
 		return value

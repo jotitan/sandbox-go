@@ -45,9 +45,26 @@ func TestCompare(t * testing.T){
 	if len(deletions) != 1{
 		t.Error("Old image must be deleted but find",len(deletions))
 	}
+}
 
-
+func TestManager(t * testing.T){
+	fm := photos_server.NewFoldersManager("//","")
+	leaf1 := photos_server.NewImage("/home","/home/folder1/folder2/leaf1.jpg","leaf1.jpg")
+	leaf2 := photos_server.NewImage("/home","/home/folder1/folder2/leaf2.jpg","leaf2.jpg")
+	filesSub2 := photos_server.Files{}
+	filesSub2["leaf1.jpg"] = leaf1
+	filesSub2["leaf2.jpg"] = leaf2
+	sub2 := photos_server.NewFolder("/home","/home/folder1/folder2","folder2",filesSub2,false)
+	filesSub1 := photos_server.Files{}
+	filesSub1["folder2"] = sub2
+	sub1 := photos_server.NewFolder("/home","/home/folder1","folder1",filesSub1,false)
+	filesRoot := photos_server.Files{}
+	filesRoot["folder1"] = sub1
+	fm.Folders["root"] = photos_server.NewFolder("/home","/home/folder1","folder1",filesRoot,false)
+	if node,_,err := fm.FindNode("root/folder1/folder2/leaf2.jpg") ; err != nil || node == nil {
+		t.Error("Imposible to find node")
 	}
+}
 
 func createFolderNode(path string)*photos_server.Node {
 	name := filepath.Base(path)

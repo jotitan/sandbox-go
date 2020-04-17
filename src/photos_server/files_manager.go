@@ -60,12 +60,14 @@ func NewFolder(rootFolder,path,name string,files Files, imageResized bool)*Node{
 // Store many folders
 type foldersManager struct{
 	Folders map[string]*Node
+	garbageManager * GarbageManager
 	reducer Reducer
 }
 
-func NewFoldersManager(cache string)*foldersManager{
+func NewFoldersManager(cache,garbageFolder,maskDelete string)*foldersManager{
 	fm := &foldersManager{Folders:make(map[string]*Node,0),reducer:NewReducer(cache,[]uint{1080,250})}
 	fm.load()
+	fm.garbageManager = NewGarbageManager(garbageFolder,maskDelete,fm)
 	return fm
 }
 
@@ -134,6 +136,46 @@ func (files Files)Compare(previousFiles Files)([]*Node,map[string]*Node){
 
 // Add a locker to check if an update is running
 var updateLocker = sync.Mutex{}
+
+// Only update one folder
+func (fm * foldersManager)UpdateFolder(path string)error{
+	if node,_,err := fm.FindNode(path) ; err != nil {
+		return err
+	}else {
+		files := fm.Analyse(filepath.Dir(node.AbsolutePath), node.AbsolutePath)
+		// Take the specific folder
+		files = files[filepath.Base(path)].Files
+		fm.compareAndCleanFolder(files,make(map[string]*Node))
+		node.Files = files
+		fm.save()
+		return nil
+	}
+}
+
+func (fm * foldersManager)compareAndCleanFolder(files Files,newFolders map[string]*Node){
+
+	// Include dry run and full (compare length a nodes or compare always everything)
+	delta, deletions := files.Compare(fm.Folders)
+	logger.GetLogger2().Info("After update", len(delta), "new pictures and", len(deletions), "to remove")
+	// Launch indexation of new images,
+	if len(delta) > 0 {
+		waiter := &sync.WaitGroup{}
+		for _, node := range delta {
+			logger.GetLogger2().Info("Launch update image resize", node.AbsolutePath)
+			waiter.Add(1)
+			fm.reducer.AddImage(node.AbsolutePath, node.RelativePath, node, waiter,make(map[string]struct{}),false)
+		}
+		waiter.Wait()
+		logger.GetLogger2().Info("All pictures have been resized")
+	}
+
+	// remove deletions in cache
+	fm.removeFiles(deletions)
+	for name, f := range files {
+		newFolders[name] = f
+	}
+}
+
 //Update : compare structure in memory and folder to detect changes
 func (fm * foldersManager)Update()error{
 	// Have to block to avoid second update in same time
@@ -156,26 +198,7 @@ func (fm * foldersManager)Update()error{
 		for _, folder := range fm.Folders {
 			rootFolder := filepath.Dir(folder.AbsolutePath)
 			files := fm.Analyse(rootFolder, folder.AbsolutePath)
-			// Include dry run and full (compare length a nodes or compare always everything)
-			delta, deletions := files.Compare(fm.Folders)
-			logger.GetLogger2().Info("After update", len(delta), "new pictures and", len(deletions), "to remove")
-			// Launch indexation of new images,
-			if len(delta) > 0 {
-				waiter := &sync.WaitGroup{}
-				for _, node := range delta {
-					logger.GetLogger2().Info("Launch update image resize", node.AbsolutePath)
-					waiter.Add(1)
-					fm.reducer.AddImage(node.AbsolutePath, node.RelativePath, node, waiter,make(map[string]struct{}),false)
-				}
-				waiter.Wait()
-				logger.GetLogger2().Info("All pictures have been resized")
-			}
-
-			// remove deletions in cache
-			fm.removeFiles(deletions)
-			for name, f := range files {
-				newFolders[name] = f
-			}
+			fm.compareAndCleanFolder(files,newFolders)
 		}
 		fm.Folders = newFolders
 		fm.save()
@@ -193,16 +216,50 @@ func (fm * foldersManager)Update()error{
 	}
 }
 
+func (fm foldersManager)FindNode(path string)(*Node,map[string]*Node,error){
+	current := fm.Folders
+	nbSub := strings.Count(path,"/")
+	if nbSub == 0{
+		if node,ok := fm.Folders[path] ; ok {
+			return node,fm.Folders,nil
+		}
+		return nil,nil,errors.New("Impossible to found node " + path)
+	}
+	for pos,sub := range strings.Split(path,"/") {
+		node := current[sub]
+		if node.IsFolder {
+			current = current[sub].Files
+		}else{
+			// If not last element
+			if pos == nbSub {
+				// Last element, return it
+				return node,current,nil
+			}else{
+				// Impossible to continue
+				return nil,nil,errors.New("Impossible to found node " + path)
+			}
+		}
+	}
+	return nil,nil,errors.New("Bad path " + path)
+}
+
 func (fm foldersManager)removeFiles(files map[string]*Node){
 	for _,node := range files {
-		fm.removeFile(filepath.Join(fm.reducer.cache,fm.GetSmallImageName(*node)))
-		fm.removeFile(filepath.Join(fm.reducer.cache,fm.GetMiddleImageName(*node)))
+		fm.removeFilesNode(node)
 	}
 }
 
-func (fm foldersManager)removeFile(path string){
+func (fm foldersManager)removeFilesNode( node * Node)error{
+	if err := fm.removeFile(filepath.Join(fm.reducer.cache,fm.GetSmallImageName(*node))) ; err == nil {
+		return fm.removeFile(filepath.Join(fm.reducer.cache,fm.GetMiddleImageName(*node)))
+	}else{
+		return err
+	}
+}
+
+func (fm foldersManager)removeFile(path string)error{
 	logger.GetLogger2().Info("Remove file",path)
-	os.Remove(path)
+	return os.Remove(path)
 }
 
 func (fm * foldersManager)AddFolder(folderPath string,forceRotate bool){

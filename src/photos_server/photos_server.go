@@ -63,7 +63,7 @@ func (s Server)delete(w http.ResponseWriter,r * http.Request){
 	json.Unmarshal(data,&deletions)
 	imagesPath := make([]string,len(deletions))
 	for i,deletion := range deletions {
-		imagesPath[i] = strings.ReplaceAll(deletion,"/imagehd/","")
+		imagesPath[i] = strings.Replace(deletion,"/imagehd/","",-1)
 	}
 	successDeletions := s.foldersManager.garbageManager.Remove(imagesPath)
 	w.Write([]byte(fmt.Sprintf("{\"success\":%d,\"errors\":%d}",successDeletions,len(imagesPath)-successDeletions)))

@@ -63,7 +63,7 @@ func (g GarbageManager)Remove(files []string)int{
 
 func (g GarbageManager)moveOriginalFile(node *Node)bool{
 
-	moveName := filepath.Join(g.folder,strings.ReplaceAll(node.RelativePath[1:],string(filepath.Separator),"."))
+	moveName := filepath.Join(g.folder,strings.Replace(node.RelativePath[1:],string(filepath.Separator),".",-1))
 	if move,err := os.OpenFile(moveName,os.O_TRUNC|os.O_CREATE|os.O_RDWR,os.ModePerm); err == nil {
 		defer move.Close()
 		if from,err := os.Open(node.AbsolutePath) ; err == nil {

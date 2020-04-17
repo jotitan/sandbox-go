@@ -72,7 +72,6 @@ export default function MyGallery({urlFolder}) {
             url:baseUrl + '/delete',
             data:JSON.stringify(images.filter(i=>i.isSelected).map(i=>i.path))
         }).then(r=>{
-            console.log(r)
             if(r.data.errors === 0) {
                 setImages(images.filter(i => !i.isSelected));
             }

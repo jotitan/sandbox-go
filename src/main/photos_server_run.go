@@ -11,7 +11,7 @@ func main(){
 	webResources := args.GetMandatoryString("resources","Argument -resources is mandatory to specify where web resources are")
 	port := args.GetStringDefault("port","9006")
 	garbage := args.GetString("garbage")
-	maskForDelete:= args.GetString("mask-delete")
-	server := photos_server.NewPhotosServer(cacheFolder,webResources,garbage,maskForDelete)
+	maskForAdmin:= args.GetString("mask-admin")
+	server := photos_server.NewPhotosServer(cacheFolder,webResources,garbage,maskForAdmin)
 	server.Launch(port)
 }

@@ -48,7 +48,7 @@ export default function TreeFolder({setUrlFolder}) {
                 setUrlFolder(e[0])
             }
         }
-    }
+    };
 
     window.addEventListener('resize', ()=>setHeight(window.innerHeight-95));
     const onExpand = values=>{
@@ -60,7 +60,7 @@ export default function TreeFolder({setUrlFolder}) {
                 onSelect={onSelect}
                 treeData={tree}
                 height={height}
-                autoExpandParent={true}
+                autoExpandParent={false}
                 expandedKeys={expandables}
                 onExpand={onExpand}
                 virtual={true}

@@ -64,10 +64,10 @@ type foldersManager struct{
 	reducer Reducer
 }
 
-func NewFoldersManager(cache,garbageFolder,maskDelete string)*foldersManager{
+func NewFoldersManager(cache,garbageFolder,maskAdmin string)*foldersManager{
 	fm := &foldersManager{Folders:make(map[string]*Node,0),reducer:NewReducer(cache,[]uint{1080,250})}
 	fm.load()
-	fm.garbageManager = NewGarbageManager(garbageFolder,maskDelete,fm)
+	fm.garbageManager = NewGarbageManager(garbageFolder,maskAdmin,fm)
 	return fm
 }
 

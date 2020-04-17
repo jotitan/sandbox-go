@@ -17,20 +17,25 @@ import (
 type Server struct {
 	foldersManager *foldersManager
 	resources string
+	maskForAdmin string
 }
 
-func NewPhotosServer(cache,resources,garbage,maskDelete string)Server{
+func NewPhotosServer(cache,resources,garbage,maskForAdmin string)Server{
 	return Server{
-		foldersManager:NewFoldersManager(cache,garbage,maskDelete),
+		foldersManager:NewFoldersManager(cache,garbage,maskForAdmin),
 		resources:resources,
+		maskForAdmin:maskForAdmin,
 	}
+}
+
+func (s Server)canAccessAdmin(r * http.Request)bool{
+	return !strings.EqualFold("",s.maskForAdmin) && strings.Contains(r.Referer(),s.maskForAdmin)
 }
 
 func (s Server)canDelete(w http.ResponseWriter,r * http.Request){
 	w.Header().Set("Access-Control-Allow-Origin","*")
 	w.Header().Set("Content-type","application/json")
-	canDelete := s.foldersManager.garbageManager != nil && s.foldersManager.garbageManager.CanDelete(r.Referer())
-	w.Write([]byte(fmt.Sprintf("{\"can\":%t}",canDelete)))
+	w.Write([]byte(fmt.Sprintf("{\"can\":%t}",s.foldersManager.garbageManager!=nil && s.canAccessAdmin(r))))
 }
 
 func (s Server)listFolders(w http.ResponseWriter,r * http.Request){
@@ -44,7 +49,16 @@ func (s Server)listFolders(w http.ResponseWriter,r * http.Request){
 	}
 }
 
+func (s Server)error403(w http.ResponseWriter,r * http.Request){
+	logger.GetLogger2().Info("Try to delete by",r.Referer())
+	http.Error(w,"You can't execute this action",403)
+}
+
 func (s Server)addFolder(w http.ResponseWriter,r * http.Request){
+	if !s.canAccessAdmin(r) {
+		s.error403(w,r)
+		return
+	}
 	folder := r.FormValue("folder")
 	forceRotate := r.FormValue("forceRotate") == "true"
 	logger.GetLogger2().Info("Add folder",folder,"and forceRotate :",forceRotate)
@@ -53,9 +67,8 @@ func (s Server)addFolder(w http.ResponseWriter,r * http.Request){
 
 func (s Server)delete(w http.ResponseWriter,r * http.Request){
 	w.Header().Set("Access-Control-Allow-Origin","*")
-	if s.foldersManager.garbageManager == nil || !s.foldersManager.garbageManager.CanDelete(r.Referer()){
-		logger.GetLogger2().Info("Try to delete by",r.Referer())
-		http.Error(w,"You can't execute this action",403)
+	if !s.canAccessAdmin(r) && s.foldersManager.garbageManager != nil{
+		s.error403(w,r)
 		return
 	}
 	data,_ := ioutil.ReadAll(r.Body)
@@ -145,6 +158,10 @@ func (s Server)browse(w http.ResponseWriter,r * http.Request){
 }
 
 func (s Server)update(w http.ResponseWriter,r * http.Request){
+	if !s.canAccessAdmin(r) {
+		s.error403(w,r)
+		return
+	}
 	logger.GetLogger2().Info("Launch update")
 	if err := s.foldersManager.Update() ; err != nil {
 		logger.GetLogger2().Error(err.Error())
@@ -153,6 +170,10 @@ func (s Server)update(w http.ResponseWriter,r * http.Request){
 
 // Update a specific folder, faster than all folders
 func (s Server)updateFolder(w http.ResponseWriter,r * http.Request){
+	if !s.canAccessAdmin(r) {
+		s.error403(w,r)
+		return
+	}
 	w.Header().Set("Access-Control-Allow-Origin","*")
 	folder := r.FormValue("folder")
 	logger.GetLogger2().Info("Launch update folder :",folder)

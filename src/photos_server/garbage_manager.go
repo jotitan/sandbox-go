@@ -12,13 +12,12 @@ import (
 type GarbageManager struct {
 	// Where images are moved
 	folder string
-	maskDelete string
 	manager *foldersManager
 }
 
-func NewGarbageManager(folder,maskDelete string,manager *foldersManager)*GarbageManager {
+func NewGarbageManager(folder,maskAdmin string,manager *foldersManager)*GarbageManager {
 	// Test if folder exist
-	if strings.EqualFold("",maskDelete) {
+	if strings.EqualFold("",maskAdmin) {
 		logger.GetLogger2().Error("Impossible to use garbage without a security mask")
 		return nil
 	}
@@ -26,16 +25,12 @@ func NewGarbageManager(folder,maskDelete string,manager *foldersManager)*Garbage
 		defer dir.Close()
 		if stat,err := dir.Stat() ; err == nil {
 			if stat.IsDir() {
-				return &GarbageManager{folder:folder,maskDelete:maskDelete,manager:manager}
+				return &GarbageManager{folder:folder,manager:manager}
 			}
 		}
 	}
 	logger.GetLogger2().Error("Impossible to create garbage, folder is not available",folder)
 	return nil
-}
-
-func (g GarbageManager)CanDelete(referer string)bool{
-	return !strings.EqualFold("",g.maskDelete) && strings.Contains(referer,g.maskDelete)
 }
 
 func (g GarbageManager)Remove(files []string)int{

@@ -108,7 +108,7 @@ export default function MyGallery({urlFolder}) {
     };
 
     const showUpdateLink = ()=> {
-        return canDelete && updateUrl === '' ? <></> :
+        return !canDelete || updateUrl === '' ? <></> :
             <>
                 <Popconfirm placement="bottom" title={"Es tu sûr de vouloir mettre à jour le répertoire"}
                             onConfirm={updateFolder} okText="Oui" cancelText="Non">

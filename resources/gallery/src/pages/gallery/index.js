@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react'
 import {Col, Popconfirm, Row, Tooltip} from 'antd'
 import Gallery from 'react-grid-gallery'
 import axios from "axios";
-import {getBaseUrl} from "../treeFolder";
+import {getBaseUrl,getBaseUrlHref} from "../treeFolder";
 import {DeleteFilled, ReloadOutlined,FileImageOutlined, PictureOutlined} from "@ant-design/icons";
 
 export default function MyGallery({urlFolder}) {
@@ -14,6 +14,7 @@ export default function MyGallery({urlFolder}) {
     const [lightboxVisible,setLightboxVisible] = useState(false);
     const [canDelete,setCanDelete] = useState(false);
     let baseUrl = getBaseUrl();
+    let baseUrlHref = getBaseUrlHref();
     useEffect(()=>{
         axios({
             method:'GET',
@@ -46,7 +47,7 @@ export default function MyGallery({urlFolder}) {
                 .sort((img1,img2)=>new Date(img1.Date) - new Date(img2.Date))
                 .map(img=>{
                     return {
-                        hdLink:baseUrl + img.HdLink,
+                        hdLink:baseUrlHref + img.HdLink,
                         path:img.HdLink,
                         caption:"",thumbnail:baseUrl + img.ThumbnailLink,src:baseUrl + img.ImageLink,
                         thumbnailWidth:img.Width,

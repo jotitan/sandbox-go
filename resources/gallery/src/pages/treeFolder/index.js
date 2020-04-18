@@ -3,11 +3,17 @@ import {Tree} from 'antd'
 import axios from "axios";
 import useLocalStorage from "../../services/local-storage.hook";
 
-export const getBaseUrl = ()=>{
+
+export const getBaseUrlHref = ()=>{
+    return getBaseUrl(window.location.href)
+}
+
+export const getBaseUrl = (defaultValue=window.location.origin)=>{
+    console.log(window.location)
     switch (window.location.hostname) {
         case 'localhost':
             return 'http://localhost:9006';
-        default : return window.location.origin;
+        default : return defaultValue;
     }
 }
 

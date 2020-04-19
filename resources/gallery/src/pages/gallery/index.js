@@ -13,6 +13,7 @@ export default function MyGallery({urlFolder}) {
     const [key,setKey] = useState(-1);
     const [lightboxVisible,setLightboxVisible] = useState(false);
     const [canDelete,setCanDelete] = useState(false);
+    const [showThumbnails,setShowThumbnails] = useState(false);
     let baseUrl = getBaseUrl();
     let baseUrlHref = getBaseUrlHref();
     useEffect(()=>{
@@ -22,17 +23,23 @@ export default function MyGallery({urlFolder}) {
         }).then(d=>{
             setCanDelete(d.data.can);
             if(d.data.can){
-                window.addEventListener('keydown',e=>setKey(e.key));
+                window.addEventListener('keydown',e=>{
+                    if(e.key === "t"){
+                        // Switch thumbnail
+                        setShowThumbnails(s=> !s);
+                    }
+                    setKey(e.key)
+                });
             }
         });
-    },[baseUrl]);
+    },[baseUrl,setShowThumbnails]);
 
     useEffect(()=>{
         if(lightboxVisible && key === "Delete"){
             images[currentImage].isSelected=true;
             setKey("");
         }
-    },[currentImage,key,lightboxVisible,images])
+    },[currentImage,key,lightboxVisible,images]);
 
     const loadImages = url => {
         if(url === ''){return;}
@@ -46,10 +53,13 @@ export default function MyGallery({urlFolder}) {
                 .filter(file=>file.ImageLink != null)
                 .sort((img1,img2)=>new Date(img1.Date) - new Date(img2.Date))
                 .map(img=>{
+                    let d = new Date(img.Date).toLocaleString();
                     return {
                         hdLink:baseUrlHref + img.HdLink,
                         path:img.HdLink,
+                        Date:d,
                         caption:"",thumbnail:baseUrl + img.ThumbnailLink,src:baseUrl + img.ImageLink,
+                        customOverlay:<div style={{padding:2+'px',bottom:0,opacity:0.8,fontSize:10+'px',position:'absolute',backgroundColor:'white'}}>{d}</div>,
                         thumbnailWidth:img.Width,
                         thumbnailHeight:img.Height
                     }
@@ -122,6 +132,7 @@ export default function MyGallery({urlFolder}) {
     // Add behaviour when show image in lightbox
     const getCustomActions = ()=> {
         return [
+            <div style={{paddingTop:5+'px'}} key={"detail-lightbox"}>
             <Tooltip key={"image-info"} placement="top" title={"Télécharger en HD"} overlayStyle={{zIndex:20000}}>
                 <a target={"_blank"} rel="noopener noreferrer"
                    download={images != null && currentImage !== -1 ? images[currentImage].Name:''}
@@ -129,6 +140,10 @@ export default function MyGallery({urlFolder}) {
                     <FileImageOutlined style={{color:'white',fontSize:22+'px'}}/>
                 </a>
             </Tooltip>
+               <span style={{color:'white',paddingLeft:20+'px'}}>
+                   {images!=null && currentImage!==-1 ? images[currentImage].Date:''}
+               </span>
+            </div>
         ]
     };
 
@@ -150,7 +165,6 @@ export default function MyGallery({urlFolder}) {
                 <Col span={24} style={{marginTop:30+'px'}}>
                     <Gallery images={images}
                              imageCountSeparator={" / "}
-                             showLightboxThumbnails={false}
                              showImageCount={false}
                              lightboxWillClose={()=>setLightboxVisible(false)}
                              lightboxWillOpen={()=>setLightboxVisible(true)}
@@ -158,6 +172,7 @@ export default function MyGallery({urlFolder}) {
                              enableImageSelection={canDelete===true}
                              currentImageWillChange={indexImage=>setCurrentImage(indexImage)}
                              customControls={getCustomActions()}
+                             showLightboxThumbnails={showThumbnails}
                              backdropClosesModal={true} lightboxWidth={2000}/>
                 </Col>
             </Row>

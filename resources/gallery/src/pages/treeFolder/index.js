@@ -9,7 +9,6 @@ export const getBaseUrlHref = ()=>{
 }
 
 export const getBaseUrl = (defaultValue=window.location.origin)=>{
-    console.log(window.location)
     switch (window.location.hostname) {
         case 'localhost':
             return 'http://localhost:9006';

@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestCompare(t * testing.T){
+func TestCompare(t *testing.T){
 	oldFiles := photos_server.Files{}
 	oldFiles["folder1"] = createFolderNode("/home/folder1")
 	oldFiles["folder1-2"] = createFolderNode("/home/folder1/folder2")
@@ -47,8 +47,8 @@ func TestCompare(t * testing.T){
 	}
 }
 
-func TestManager(t * testing.T){
-	fm := photos_server.NewFoldersManager("//","")
+func TestManager(t *testing.T){
+	fm := photos_server.NewFoldersManager("//","","")
 	leaf1 := photos_server.NewImage("/home","/home/folder1/folder2/leaf1.jpg","leaf1.jpg")
 	leaf2 := photos_server.NewImage("/home","/home/folder1/folder2/leaf2.jpg","leaf2.jpg")
 	filesSub2 := photos_server.Files{}

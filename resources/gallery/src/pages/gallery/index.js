@@ -5,7 +5,7 @@ import axios from "axios";
 import {getBaseUrl,getBaseUrlHref} from "../treeFolder";
 import {DeleteFilled, ReloadOutlined,FileImageOutlined, PictureOutlined} from "@ant-design/icons";
 
-export default function MyGallery({urlFolder}) {
+export default function MyGallery({urlFolder,refresh}) {
     const [images,setImages] = useState([]);
     const [updateUrl,setUpdateUrl] = useState('');
     const [currentImage,setCurrentImage] = useState(-1);
@@ -14,8 +14,16 @@ export default function MyGallery({urlFolder}) {
     const [lightboxVisible,setLightboxVisible] = useState(false);
     const [canDelete,setCanDelete] = useState(false);
     const [showThumbnails,setShowThumbnails] = useState(false);
+    const [comp,setComp] = useState(null);
     let baseUrl = getBaseUrl();
     let baseUrlHref = getBaseUrlHref();
+
+    useEffect(()=>{
+        if(comp!=null){
+            setTimeout(()=>comp.onResize(),300);
+        }
+    },[refresh,comp])
+
     useEffect(()=>{
         axios({
             method:'GET',
@@ -133,25 +141,24 @@ export default function MyGallery({urlFolder}) {
     const getCustomActions = ()=> {
         return [
             <div style={{paddingTop:5+'px'}} key={"detail-lightbox"}>
-            <Tooltip key={"image-info"} placement="top" title={"Télécharger en HD"} overlayStyle={{zIndex:20000}}>
-                <a target={"_blank"} rel="noopener noreferrer"
-                   download={images != null && currentImage !== -1 ? images[currentImage].Name:''}
-                   href={images != null && currentImage !== -1 ? images[currentImage].hdLink:''} >
-                    <FileImageOutlined style={{color:'white',fontSize:22+'px'}}/>
-                </a>
-            </Tooltip>
-               <span style={{color:'white',paddingLeft:20+'px'}}>
+                <Tooltip key={"image-info"} placement="top" title={"Télécharger en HD"} overlayStyle={{zIndex:20000}}>
+                    <a target={"_blank"} rel="noopener noreferrer"
+                       download={images != null && currentImage !== -1 ? images[currentImage].Name:''}
+                       href={images != null && currentImage !== -1 ? images[currentImage].hdLink:''} >
+                        <FileImageOutlined style={{color:'white',fontSize:22+'px'}}/>
+                    </a>
+                </Tooltip>
+                <span style={{color:'white',paddingLeft:20+'px'}}>
                    {images!=null && currentImage!==-1 ? images[currentImage].Date:''}
                </span>
             </div>
         ]
     };
-
     return (
         <>
             <Row className={"options"}>
                 <Col span={8}>
-                    <PictureOutlined /> : {images.length}
+                    {images.length} <PictureOutlined />
                 </Col>
                 <Col span={8}>
                     {showSelected()}
@@ -163,17 +170,18 @@ export default function MyGallery({urlFolder}) {
             </Row>
             <Row className={"gallery"}>
                 <Col span={24} style={{marginTop:30+'px'}}>
-                    <Gallery images={images}
-                             imageCountSeparator={" / "}
-                             showImageCount={false}
-                             lightboxWillClose={()=>setLightboxVisible(false)}
-                             lightboxWillOpen={()=>setLightboxVisible(true)}
-                             onSelectImage={selectImage}
-                             enableImageSelection={canDelete===true}
-                             currentImageWillChange={indexImage=>setCurrentImage(indexImage)}
-                             customControls={getCustomActions()}
-                             showLightboxThumbnails={showThumbnails}
-                             backdropClosesModal={true} lightboxWidth={2000}/>
+                    <Gallery ref={node=>{setComp(node);window.t = node}}
+                        images={images}
+                        imageCountSeparator={" / "}
+                        showImageCount={false}
+                        lightboxWillClose={()=>setLightboxVisible(false)}
+                        lightboxWillOpen={()=>setLightboxVisible(true)}
+                        onSelectImage={selectImage}
+                        enableImageSelection={canDelete===true}
+                        currentImageWillChange={indexImage=>setCurrentImage(indexImage)}
+                        customControls={getCustomActions()}
+                        showLightboxThumbnails={showThumbnails}
+                        backdropClosesModal={true} lightboxWidth={2000}/>
                 </Col>
             </Row>
         </>

@@ -72,3 +72,9 @@
 body {
   background-color:#001529;
 }
+
+.logo {
+  padding-left:10px;
+  color:white;
+  text-transform: uppercase;
+}

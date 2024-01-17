@@ -27,6 +27,7 @@ type config struct {
 	hostSMTP     string
 	fromEmail    string
 	toEmail      string
+	port         string
 }
 
 func main() {
@@ -43,8 +44,8 @@ func main() {
 }
 
 func checkStartup() error {
-	if len(os.Args) != 7 {
-		return errors.New("need to specify configuration <password livebox> <SMTP user> <SMTP password> < SMTP host> <from email> <to email> ")
+	if len(os.Args) != 8 {
+		return errors.New("need to specify configuration <password livebox> <SMTP user> <SMTP password> < SMTP host> <from email> <to email> <port> ")
 	}
 	conf = config{
 		passwordLB:   os.Args[1],
@@ -53,6 +54,7 @@ func checkStartup() error {
 		hostSMTP:     os.Args[4],
 		fromEmail:    os.Args[5],
 		toEmail:      os.Args[6],
+		port:         os.Args[7],
 	}
 	return nil
 }
@@ -60,8 +62,8 @@ func checkStartup() error {
 func runServerHealth() {
 	s := http.ServeMux{}
 	s.HandleFunc("/health", health)
-	log.Println("Server started on port 9013")
-	http.ListenAndServe(":9013", &s)
+	log.Println("Server started on port " + conf.port)
+	log.Fatal(http.ListenAndServe(":"+conf.port, &s))
 }
 
 func health(w http.ResponseWriter, r *http.Request) {

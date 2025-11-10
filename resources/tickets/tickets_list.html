@@ -1,0 +1,42 @@
+<html>
+
+<head>
+
+    <script src="display.js">;</script>
+    <script>
+        if(navigator.serviceWorker) {
+            navigator.serviceWorker.register('service_worker.js')
+        }
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log("DETECT INSTALL")
+        });
+    </script>
+    <link rel="manifest" href="manifest.json"/>
+    <title>PWA Page</title>
+</head>
+
+<body>
+
+<div>
+    <h1>PWA Test : achats de tickets</h1>
+    TODO : autre idée, édition de cave à vin, ajout de bouteille, modification du volume
+</div>
+
+<div>
+    Bonjour tickets    <button onclick="displayTickets()">Get tickets</button>
+</div>
+
+<div style="float:left" class="tickets-bloc">
+
+</div>
+<div style="float:right">
+    <img src="images/fleming.jpg" style="width:300px"/>
+</div>
+
+<div style="clear:both"></div>
+<div style="border:solid 1px black" id="qrcode-clock">
+
+</div>
+
+</body>
+</html>

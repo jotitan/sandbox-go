@@ -15,6 +15,8 @@ import (
 	"time"
 )
 
+/* Micro service which detect when ip is changing and send email with the new ip */
+
 var lastIpCheck time.Time
 var previousIP string
 
@@ -70,6 +72,7 @@ func health(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf("Up, last check : %s", lastIpCheck.Format("02-01-2006 15:04:05"))))
 }
 
+// Check if IP change and send IP if so
 func checkAndMail() {
 	if newIP := getCompleteIP(); previousIP != newIP {
 		previousIP = newIP
@@ -90,6 +93,7 @@ func getCompleteIP() string {
 	return ip
 }
 
+// Login into livebox and get auth token
 func login(password string) (string, string, string, error) {
 	buf := bytes.NewBufferString(fmt.Sprintf(`{"service":"sah.Device.Information","method":"createContext","parameters":{"applicationName":"webui","username":"admin","password":"%s"}}`, password))
 	request, _ := http.NewRequest(http.MethodPost, "http://192.168.1.1/ws", buf)
@@ -115,6 +119,7 @@ func login(password string) (string, string, string, error) {
 	}
 }
 
+// Call Livebox API to retrieve public IP
 func getIP(key, sessionName, sessionId string) (string, error) {
 	buf := bytes.NewBufferString(`{"service": "NMC", "method": "getWANStatus", "parameters": {}}`)
 	request, _ := http.NewRequest(http.MethodPost, "http://192.168.1.1/ws", buf)
